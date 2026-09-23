@@ -93,9 +93,11 @@ See `.env.example`:
 
 ## Deploy (live URL and pull-request previews)
 
-**GitHub Pages can't run this app.** Pages only serves static files, so it shows this README instead of the workspace. The app needs a running Node server for the passphrase check, the SQLite database and uploads. Turn Pages off under **Settings → Pages** so it stops publishing the README.
+**GitHub Pages** shows an auto-built **visual preview** of the interface (screenshots of every screen, refreshed on every push to `main`) at https://dangerous83.github.io/nexosmedia/. The workflow that builds it is `.github/workflows/pages.yml`; the scripts it runs are `scripts/preview-shots.mjs` and `scripts/build-preview.mjs`. This preview is images, not the live app: the app itself needs a Node server (passphrase check, SQLite, uploads), which Pages can't provide.
 
-The repo includes a Render Blueprint (`render.yaml`) that runs it as a Node web service:
+To publish the preview to Pages, open the repo's **Settings → Pages** and set **Source** to **GitHub Actions** (one time).
+
+For a **live URL** and **pull-request previews of the running app**, the repo includes a Render Blueprint (`render.yaml`) that runs it as a Node web service:
 
 1. On [render.com](https://render.com), choose **New → Blueprint** and pick this repository.
 2. When asked for `NEXO_PASSPHRASE_HASH`, paste the value printed by `npm run set-passphrase -- --print`.
