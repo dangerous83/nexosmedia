@@ -1,0 +1,28 @@
+# Render Blueprint — runs NEXOSPHERE Media Space as a Node web service.
+# GitHub Pages can't host this app: it needs a running server (passphrase check, SQLite, uploads).
+#
+# One-time setup: Render dashboard → New → Blueprint → pick this repo, then paste the value
+# printed by `npm run set-passphrase -- --print` into NEXO_PASSPHRASE_HASH.
+# After that, every push to main redeploys, and every pull request gets its own preview URL.
+services:
+  - type: web
+    name: nexosphere
+    runtime: node
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /unlock
+    autoDeploy: true
+    previews:
+      generation: automatic
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: NEXO_PASSPHRASE_HASH
+        sync: false # secret: set it in the Render dashboard, never in git
+      - key: NEXO_SESSION_HOURS
+        value: "12"
+      # The free plan has no persistent disk, so uploads are cleared on every redeploy or restart.
+      # For real use, switch to a paid plan, add a disk mounted at /var/data and set DATA_DIR to it.
+      - key: DATA_DIR
+        value: ./data
