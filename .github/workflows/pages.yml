@@ -1,0 +1,78 @@
+name: Preview site (GitHub Pages)
+
+# Builds the app, drives it with Playwright to capture screenshots of every screen, packages
+# them into a static gallery, and publishes it to GitHub Pages. The live app itself can't run
+# on Pages (Node server + SQLite + uploads), so this keeps the interface visible there.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Standard permission set for the official actions/deploy-pages action.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      # Playwright's Chromium (also used by tests/fixtures.mjs to record a WebM).
+      - run: npx playwright install --with-deps chromium
+
+      - name: Build the app
+        run: npm run build
+
+      - name: Start the app on a scratch data folder
+        run: |
+          HASH=$(NEXO_NEW_PASSPHRASE=preview-passphrase node scripts/set-passphrase.mjs --print | grep HASH | cut -d= -f2-)
+          echo "PASS_HASH=$HASH" >> "$GITHUB_ENV"
+          NODE_ENV=production COOKIE_SECURE=false PORT=3200 \
+            NEXO_PASSPHRASE_HASH="$HASH" DATA_DIR=./preview-data \
+            nohup npm start > server.log 2>&1 &
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3200/unlock || true)
+            [ "$code" = "200" ] && exit 0
+            sleep 1
+          done
+          echo "server never came up:"; tail -50 server.log; exit 1
+
+      - name: Capture screenshots
+        env:
+          BASE: http://localhost:3200
+          PASSPHRASE: preview-passphrase
+        run: node scripts/preview-shots.mjs
+
+      - name: Build the static preview site
+        run: node scripts/build-preview.mjs
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: preview-out
+
+  deploy:
+    # Only main deploys to the live Pages URL — PRs still build the artifact above, so a broken
+    # build shows up on the PR, but they don't overwrite the live preview.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
