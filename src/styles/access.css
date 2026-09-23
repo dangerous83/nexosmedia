@@ -1,0 +1,32 @@
+/* ——— Access (unlock) screen ——— */
+.access {
+  position: relative; min-height: 100dvh; display: grid; place-items: center; padding: 32px 16px; overflow: hidden;
+  background:
+    radial-gradient(50% 42% at 50% 0%, rgba(123, 60, 255, 0.22), transparent 70%),
+    radial-gradient(40% 40% at 100% 100%, rgba(34, 208, 245, 0.08), transparent 70%),
+    radial-gradient(35% 40% at 0% 100%, rgba(46, 107, 255, 0.08), transparent 70%),
+    var(--bg);
+}
+.access::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1.2px); background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(50% 50% at 50% 30%, #000, transparent 80%); mask-image: radial-gradient(50% 50% at 50% 30%, #000, transparent 80%);
+}
+.access-card {
+  position: relative; width: min(440px, 100%); display: grid; gap: 10px;
+  padding: clamp(28px, 5vw, 40px); border-radius: var(--r-xl);
+  background: linear-gradient(180deg, rgba(22, 24, 34, 0.9), rgba(14, 15, 22, 0.94));
+  border: 1px solid var(--border-2); box-shadow: var(--shadow-3), 0 0 0 1px rgba(155, 123, 255, 0.06) inset;
+}
+.access-brand { display: grid; justify-items: center; gap: 12px; margin-bottom: 14px; }
+.access-brand img:first-child { filter: drop-shadow(0 14px 34px rgba(90, 70, 255, 0.5)); }
+.access-brand .brand-tag { padding-left: 0; border: 0; }
+.access-title { font-size: clamp(1.4rem, 1.2rem + 0.8vw, 1.7rem); font-weight: 700; letter-spacing: -0.025em; text-align: center; }
+.access-sub { color: var(--text-2); text-align: center; margin-bottom: 14px; }
+.access-form { display: grid; gap: 10px; }
+.access-form .btn-primary { margin-top: 6px; }
+.access-note { margin-top: 12px; padding-top: 16px; border-top: 1px solid var(--border); font-size: var(--text-xs); color: var(--text-3); text-align: center; }
+.access-setup { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: var(--r-md); border: 1px solid rgba(245, 185, 74, 0.3); background: var(--warning-bg); font-size: var(--text-sm); color: var(--text-2); }
+.access-setup > svg { width: 20px; height: 20px; flex: none; color: var(--warning); margin-top: 1px; }
+.access-setup-title { font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.access-setup code { font-size: 0.95em; padding: 1px 6px; border-radius: 6px; background: rgba(0,0,0,0.35); color: var(--text); }

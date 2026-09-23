@@ -1,0 +1,95 @@
+/* ——————————————————————————————————————————————
+   NEXOSPHERE design tokens
+   Neutral charcoal surfaces keep uploaded media in focus; brand colour (sampled from the
+   official sphere: electric blue → cyan → violet → magenta) is reserved for brand moments,
+   selection and primary actions.
+   —————————————————————————————————————————————— */
+:root {
+  color-scheme: dark;
+
+  /* Surfaces — page → surface → elevated → control, each a visible step brighter */
+  --bg: #090a0f;
+  --surface-1: #12131c;
+  --surface-2: #191b28;
+  --surface-3: #212436;
+  --surface-4: #2a2e44;
+  --overlay: rgba(4, 5, 9, 0.72);
+  --scrim: rgba(3, 4, 8, 0.86);
+
+  /* Lines */
+  --border: rgba(255, 255, 255, 0.075);
+  --border-2: rgba(255, 255, 255, 0.12);
+  --border-3: rgba(255, 255, 255, 0.2);
+
+  /* Text (contrast on --surface-1: ≈16.6:1 / 8.2:1 / 5.0:1) */
+  --text: #f4f5fa;
+  --text-2: #a5abbd;
+  --text-3: #858b9f;
+  --text-inverse: #090a0f;
+
+  /* Brand — sampled from the logo */
+  --brand-blue: #2e6bff;
+  --brand-cyan: #22d0f5;
+  --brand-violet: #8a4dff;
+  --brand-magenta: #d24bf2;
+  --brand-gradient: linear-gradient(135deg, #22d0f5 0%, #2e6bff 38%, #7b3cff 72%, #d24bf2 100%);
+  --brand-gradient-soft: linear-gradient(135deg, rgba(34, 208, 245, 0.18), rgba(123, 60, 255, 0.18));
+
+  /* Semantic accents */
+  --violet: #8b5cf6;
+  --blue: #5265ff;
+  --cyan: #45c8f5;
+  --accent: #a58bff;            /* violet, readable as text/icons on dark */
+  --accent-strong: #8b5cf6;
+  --accent-bg: rgba(139, 92, 246, 0.16);
+  --accent-border: rgba(165, 139, 255, 0.45);
+  --primary-gradient: linear-gradient(135deg, #5265ff 0%, #7a5cf7 55%, #8b5cf6 100%);
+  --success: #3ddc97;
+  --success-bg: rgba(61, 220, 151, 0.12);
+  --warning: #f5b94a;
+  --warning-bg: rgba(245, 185, 74, 0.12);
+  --danger: #ff6b7d;
+  --danger-strong: #e5484d;
+  --danger-bg: rgba(255, 107, 125, 0.12);
+
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px #a98bff;
+
+  /* Type */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --text-xs: 0.75rem;     /* 12 */
+  --text-sm: 0.8125rem;   /* 13 */
+  --text-base: 0.875rem;  /* 14 */
+  --text-md: 0.9375rem;   /* 15 */
+  --text-lg: 1.0625rem;   /* 17 */
+  --text-xl: 1.25rem;     /* 20 */
+  --text-2xl: clamp(1.5rem, 1.25rem + 1vw, 1.875rem);
+  --leading: 1.5;
+
+  /* Spacing (4px grid) */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px;
+  --s-6: 24px; --s-8: 32px; --s-10: 40px; --s-12: 48px; --s-16: 64px;
+  --gutter: clamp(16px, 4vw, 48px);
+
+  /* Radii */
+  --r-xs: 6px; --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 22px; --r-full: 999px;
+
+  /* Elevation */
+  --shadow-1: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 8px 24px -8px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.35);
+  --shadow-3: 0 24px 64px -16px rgba(0, 0, 0, 0.75), 0 8px 20px rgba(0, 0, 0, 0.4);
+
+  /* Motion */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --d-1: 150ms; --d-2: 200ms; --d-3: 220ms;
+
+  /* Layout */
+  --header-h: 64px;
+  --content-max: 1440px;
+  --touch: 44px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --d-1: 0ms; --d-2: 0ms; --d-3: 0ms; }
+}
+:root[data-motion="reduced"] { --d-1: 0ms; --d-2: 0ms; --d-3: 0ms; }

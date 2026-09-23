@@ -1,0 +1,13 @@
+node_modules/
+.next/
+out/
+data/
+.env
+.env.local
+*.tsbuildinfo
+next-env.d.ts
+test-results/
+test-data*/
+
+# Stray downloaded/test artifacts
+*.zip
