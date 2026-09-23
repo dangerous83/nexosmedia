@@ -91,6 +91,20 @@ See `.env.example`:
 | `MAX_IMAGE_MB` / `MAX_VIDEO_MB` | `50` / `1024` | Upload limits |
 | `COOKIE_SECURE` | `true` in production | Set to `false` only to test a production build over plain HTTP on a LAN |
 
+## Deploy (live URL and pull-request previews)
+
+**GitHub Pages can't run this app.** Pages only serves static files, so it shows this README instead of the workspace. The app needs a running Node server for the passphrase check, the SQLite database and uploads. Turn Pages off under **Settings → Pages** so it stops publishing the README.
+
+The repo includes a Render Blueprint (`render.yaml`) that runs it as a Node web service:
+
+1. On [render.com](https://render.com), choose **New → Blueprint** and pick this repository.
+2. When asked for `NEXO_PASSPHRASE_HASH`, paste the value printed by `npm run set-passphrase -- --print`.
+3. Render builds and deploys. After that, every push to `main` redeploys, and every pull request gets its own preview URL, posted on the PR.
+
+The Blueprint uses Render's **free plan, which has no persistent disk**. Uploaded files are cleared whenever the service redeploys or restarts, which is fine for previewing the interface. For real use, move to a paid plan, add a disk (for example at `/var/data`) and set `DATA_DIR` to it.
+
+Every pull request also runs the **CI** workflow (`.github/workflows/ci.yml`): a typecheck and a production build. A broken build shows up on the PR before it is deployed.
+
 ## Deployment requirements
 
 - **Persistent disk:** local storage needs a disk that survives restarts and redeploys. Serverless functions and containers without a mounted volume will lose uploads. Run on a VM or container with `DATA_DIR` on a persistent volume.
