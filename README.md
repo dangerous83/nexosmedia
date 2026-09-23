@@ -8,6 +8,18 @@ This is a single shared workspace, not a multi-user app. Anyone who knows the pa
 
 **Stack:** Next.js 16 (App Router), React 19, TypeScript, SQLite through Node's built-in `node:sqlite`, `sharp` for image validation and thumbnails, Radix UI for dialogs and menus, Lucide icons, and hand-written CSS with design tokens (`src/styles/tokens.css`).
 
+## Try it live
+
+**GitHub Pages can't run this app** — it only serves static files, so `dangerous83.github.io/nexosmedia/` shows a *picture* of the dashboard, not the working app. To actually click around in a browser, deploy it somewhere that runs Node. One click:
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/dangerous83/nexosmedia)
+
+Render reads `render.yaml` in this repo and provisions a long-running Node web service on its free plan — the whole app (SQLite, uploads, sessions) works normally. It asks for one value, `NEXO_PASSPHRASE_HASH`; get it by running `npm run set-passphrase -- --print` locally and pasting the printed line.
+
+**Free-plan caveat:** Render's free web service has no persistent disk, so uploaded files are wiped whenever the service redeploys or restarts. That's fine for demoing the interface; for real use, switch to a paid plan and add a disk (README's *Deployment requirements* section covers this).
+
+**Vercel:** works too, but Vercel routes App Router API routes through short-lived serverless functions, so `node:sqlite` writes and uploaded files won't reliably survive between requests. Prefer Render for a working demo.
+
 ## Run it
 
 Requirements: **Node.js 22.13 or later** (24 recommended).
