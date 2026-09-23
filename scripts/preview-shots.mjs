@@ -18,11 +18,11 @@ const PASS = process.env.PASSPHRASE || "test-passphrase-123";
 const OUT = process.env.OUT || "preview-out/shots";
 mkdirSync(OUT, { recursive: true });
 
-const shot = (page, name) => page.screenshot({ path: path.join(OUT, `${name}.png`), fullPage: false });
+const shot = (page, name, full = false) => page.screenshot({ path: path.join(OUT, `${name}.png`), fullPage: full });
 const settle = (page, ms = 400) => page.waitForTimeout(ms);
 
 const browser = await chromium.launch({ executablePath: process.env.CHROME });
-const desktop = { width: 1440, height: 900, deviceScaleFactor: 2 };
+const desktop = { width: 1600, height: 1000, deviceScaleFactor: 2 };
 const mobile = { width: 390, height: 780, deviceScaleFactor: 2 };
 
 // ── Fixtures: real images we can upload to make the workspace look inhabited.
@@ -70,6 +70,8 @@ await fileInput.setInputFiles(uploads);
 await page.waitForFunction((n) => document.querySelectorAll(".card").length >= n, uploads.length, { timeout: 30000 });
 await settle(page, 800);
 await shot(page, "04-workspace-populated");
+// The landing image on the static site — a full-viewport snapshot of the populated dashboard.
+await shot(page, "00-dashboard", true);
 
 // Large thumbnail view — the graphic-designer view.
 await page.getByRole("button", { name: "Large thumbnails" }).click();
