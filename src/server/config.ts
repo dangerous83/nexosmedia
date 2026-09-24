@@ -7,7 +7,12 @@ const num = (v: string | undefined, fallback: number) => {
 
 export const config = {
   dataDir: path.resolve(/*turbopackIgnore: true*/ process.env.DATA_DIR || "./data"),
-  storageDriver: process.env.STORAGE_DRIVER || "local",
+  // A Vercel Blob store injects BLOB_READ_WRITE_TOKEN. Prefer it automatically so a Vercel
+  // deployment never appears to save uploads to its short-lived local filesystem merely because
+  // STORAGE_DRIVER was omitted. Self-hosted installs remain local unless explicitly configured.
+  storageDriver:
+    process.env.STORAGE_DRIVER?.trim() ||
+    (process.env.BLOB_READ_WRITE_TOKEN?.trim() ? "vercel-blob" : "local"),
   maxImageBytes: num(process.env.MAX_IMAGE_MB, 50) * 1024 * 1024,
   maxVideoBytes: num(process.env.MAX_VIDEO_MB, 1024) * 1024 * 1024,
   /**

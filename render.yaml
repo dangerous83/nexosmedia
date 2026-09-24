@@ -26,3 +26,5 @@ services:
       # For real use, switch to a paid plan, add a disk mounted at /var/data and set DATA_DIR to it.
       - key: DATA_DIR
         value: ./data
+      - key: STORAGE_DRIVER
+        value: local

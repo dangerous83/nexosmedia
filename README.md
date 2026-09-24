@@ -18,7 +18,7 @@ Render reads `render.yaml` in this repo and provisions a long-running Node web s
 
 **Free-plan caveat:** Render's free web service has no persistent disk, so uploaded files are wiped whenever the service redeploys or restarts. That's fine for demoing the interface; for real use, switch to a paid plan and add a disk (README's *Deployment requirements* section covers this).
 
-**Vercel:** works too, but Vercel routes App Router API routes through short-lived serverless functions, so `node:sqlite` writes and uploaded files won't reliably survive between requests. Prefer Render for a working demo.
+**Vercel:** connect a Vercel Blob store to the project. The injected `BLOB_READ_WRITE_TOKEN` makes the app select durable Blob storage automatically; uploads and their media records then survive deployments and serverless instance changes. Without a connected Blob store, Vercel's local filesystem is temporary and must not be used for real uploads.
 
 ## Run it
 
@@ -99,7 +99,8 @@ See `.env.example`:
 | `NEXO_PASSPHRASE_HASH` | — (required) | scrypt hash from `npm run set-passphrase` |
 | `NEXO_SESSION_HOURS` | `12` | Session lifetime |
 | `DATA_DIR` | `./data` | Database and files |
-| `STORAGE_DRIVER` | `local` | Only `local` is implemented |
+| `STORAGE_DRIVER` | automatic | Uses `vercel-blob` when `BLOB_READ_WRITE_TOKEN` exists, otherwise `local`; set explicitly to override |
+| `BLOB_READ_WRITE_TOKEN` | — | Added by a connected Vercel Blob store; enables durable private Blob storage and direct large uploads |
 | `MAX_IMAGE_MB` / `MAX_VIDEO_MB` | `50` / `1024` | Upload limits |
 | `COOKIE_SECURE` | `true` in production | Set to `false` only to test a production build over plain HTTP on a LAN |
 
@@ -121,10 +122,10 @@ Every pull request also runs the **CI** workflow (`.github/workflows/ci.yml`): a
 
 ## Deployment requirements
 
-- **Persistent disk:** local storage needs a disk that survives restarts and redeploys. Serverless functions and containers without a mounted volume will lose uploads. Run on a VM or container with `DATA_DIR` on a persistent volume.
+- **Persistent storage:** local storage needs a disk that survives restarts and redeploys. On Vercel, connect a Blob store to the project; the app detects its `BLOB_READ_WRITE_TOKEN` automatically and stores originals, previews and durable media metadata there. Other serverless functions and containers without a mounted volume or object store will lose uploads.
 - **HTTPS:** serve production over HTTPS so the `Secure` session cookie works.
 - **Passphrase secret:** set `NEXO_PASSPHRASE_HASH` as a secret on the host.
-- **Object storage:** not included. Storage goes through the `StorageAdapter` interface (`src/server/storage/types.ts`). To use S3, R2, GCS or Azure Blob, add an implementation, register it in `src/server/storage/index.ts` under a new `STORAGE_DRIVER` value, and supply its credentials through environment variables. The routes and UI don't need to change.
+- **Other object stores:** storage goes through the `StorageAdapter` interface (`src/server/storage/types.ts`). Vercel Blob is included. To use S3, R2, GCS or Azure Blob, add an implementation, register it in `src/server/storage/index.ts` under a new `STORAGE_DRIVER` value, and supply its credentials through environment variables. The routes and UI don't need to change.
 - **Multiple instances:** the unlock rate limiter and bulk-download tokens are held per process. If you run several instances, add a shared limit at your proxy (for example on `POST /api/access`) and use sticky sessions, or a shared store, for `/api/media/archive`.
 
 ## Tests
