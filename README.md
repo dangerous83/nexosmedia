@@ -98,7 +98,7 @@ See `.env.example`:
 | --- | --- | --- |
 | `NEXO_PASSPHRASE_HASH` | — (required) | scrypt hash from `npm run set-passphrase` |
 | `NEXO_SESSION_HOURS` | `12` | Session lifetime |
-| `DATA_DIR` | `./data` | Database and files |
+| `DATA_DIR` | `./data` locally; system temp on Vercel | Local database/files, or the writable per-instance metadata cache when Vercel Blob is active |
 | `STORAGE_DRIVER` | automatic | Uses `vercel-blob` when `BLOB_READ_WRITE_TOKEN` exists, otherwise `local`; set explicitly to override |
 | `BLOB_READ_WRITE_TOKEN` | — | Added by a connected Vercel Blob store; enables durable private Blob storage and direct large uploads |
 | `MAX_IMAGE_MB` / `MAX_VIDEO_MB` | `50` / `1024` | Upload limits |

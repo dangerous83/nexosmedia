@@ -1,4 +1,5 @@
 import path from "node:path";
+import { tmpdir } from "node:os";
 
 const num = (v: string | undefined, fallback: number) => {
   const n = Number(v);
@@ -6,7 +7,13 @@ const num = (v: string | undefined, fallback: number) => {
 };
 
 export const config = {
-  dataDir: path.resolve(/*turbopackIgnore: true*/ process.env.DATA_DIR || "./data"),
+  // Vercel's deployed application directory is read-only. With Blob storage this directory only
+  // holds a per-instance SQLite metadata cache and upload scratch files, so keep it in the writable
+  // system temp directory. Durable originals, previews, and metadata sidecars remain in Blob.
+  dataDir: path.resolve(
+    /*turbopackIgnore: true*/ process.env.DATA_DIR ||
+    (process.env.VERCEL ? path.join(tmpdir(), "nexosphere") : "./data"),
+  ),
   // A Vercel Blob store injects BLOB_READ_WRITE_TOKEN. Prefer it automatically so a Vercel
   // deployment never appears to save uploads to its short-lived local filesystem merely because
   // STORAGE_DRIVER was omitted. Self-hosted installs remain local unless explicitly configured.
