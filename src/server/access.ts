@@ -1,7 +1,6 @@
 import "server-only";
-import { createHash, randomBytes, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
-import { db } from "./db";
 import { config } from "./config";
 
 /*
@@ -41,13 +40,20 @@ const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
 /** Changing the passphrase changes this fingerprint, which invalidates every existing session. */
 const passFingerprint = () => sha256(config.passphraseHash).slice(0, 32);
 
+// Keep access sessions portable across serverless instances. Vercel may handle the unlock POST and
+// the following page request in different processes, so a session stored in one process's SQLite
+// file is not reliable. The cookie is signed with a key derived from the configured passphrase hash;
+// changing the passphrase therefore invalidates every existing cookie automatically.
+const sessionKey = () => createHash("sha256")
+  .update("nexosphere-access-session-v1\0")
+  .update(config.passphraseHash)
+  .digest();
+const sign = (payload: string) => createHmac("sha256", sessionKey()).update(payload).digest("base64url");
+
 export async function startSession() {
-  const token = randomBytes(32).toString("base64url");
-  const now = Date.now();
-  const expires = now + config.sessionHours * 3600_000;
-  db().prepare("DELETE FROM access_sessions WHERE expires_at < ?").run(now);
-  db().prepare("INSERT INTO access_sessions (token_hash, pass_fp, expires_at, created_at) VALUES (?, ?, ?, ?)")
-    .run(sha256(token), passFingerprint(), expires, now);
+  const expires = Date.now() + config.sessionHours * 3600_000;
+  const payload = `${expires}.${randomBytes(16).toString("base64url")}.${passFingerprint()}`;
+  const token = `${payload}.${sign(payload)}`;
   (await cookies()).set(ACCESS_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
@@ -59,8 +65,6 @@ export async function startSession() {
 
 export async function endSession() {
   const store = await cookies();
-  const token = store.get(ACCESS_COOKIE)?.value;
-  if (token) db().prepare("DELETE FROM access_sessions WHERE token_hash = ?").run(sha256(token));
   store.delete(ACCESS_COOKIE);
 }
 
@@ -69,9 +73,15 @@ export async function hasAccess(): Promise<boolean> {
   if (!isConfigured()) return false;
   const token = (await cookies()).get(ACCESS_COOKIE)?.value;
   if (!token) return false;
-  const row = db().prepare("SELECT pass_fp, expires_at FROM access_sessions WHERE token_hash = ?")
-    .get(sha256(token)) as { pass_fp: string; expires_at: number } | undefined;
-  return !!row && row.expires_at > Date.now() && row.pass_fp === passFingerprint();
+  const parts = token.split(".");
+  if (parts.length !== 4) return false;
+  const [expiresRaw, nonce, fingerprint, signature] = parts;
+  const payload = `${expiresRaw}.${nonce}.${fingerprint}`;
+  const expected = Buffer.from(sign(payload));
+  const received = Buffer.from(signature);
+  if (expected.length !== received.length || !timingSafeEqual(expected, received)) return false;
+  const expires = Number(expiresRaw);
+  return Number.isFinite(expires) && expires > Date.now() && fingerprint === passFingerprint();
 }
 
 // ——— Unlock throttling (per server process) ———
