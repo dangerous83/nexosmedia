@@ -13,7 +13,12 @@ export default async function UnlockPage() {
     <main className="access">
       <div className="access-card">
         <div className="access-brand">
-          <BrandSymbol size={96} className="access-logo" priority />
+          <div className="access-particles" aria-hidden>
+            {Array.from({ length: 9 }, (_, i) => <span key={i} />)}
+          </div>
+          <div className="access-logo-shell">
+            <BrandSymbol size={96} className="access-logo" priority />
+          </div>
         </div>
         <h1 className="access-title">Your private media space.</h1>
         <p className="access-sub">Enter the workspace passphrase to upload and view images and videos.</p>
