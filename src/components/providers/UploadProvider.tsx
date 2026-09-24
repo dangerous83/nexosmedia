@@ -123,7 +123,7 @@ function inspectVideo(file: File, url: string): Promise<{ width?: number; height
   });
 }
 
-interface Limits { maxImageBytes: number; maxVideoBytes: number; directBlobUpload?: boolean }
+interface Limits { maxImageBytes: number; maxVideoBytes: number; directUpload?: "vercel-blob" | "s3" }
 
 export function UploadProvider({ limits, children }: { limits: Limits; children: React.ReactNode }) {
   const [items, setItems] = useState<UploadItem[]>([]);
@@ -195,30 +195,59 @@ export function UploadProvider({ limits, children }: { limits: Limits; children:
   }, [validate, patch]);
 
   const start = useCallback((item: UploadItem) => {
-    if (limits.directBlobUpload) {
-      if (aborters.current.has(item.id)) return;
-      const controller = new AbortController();
-      aborters.current.set(item.id, controller);
+    if (limits.directUpload) {
+      if (aborters.current.has(item.id) || xhrs.current.has(item.id)) return;
+      const controller = limits.directUpload === "vercel-blob" ? new AbortController() : null;
+      if (controller) aborters.current.set(item.id, controller);
       patch(item.id, { status: "uploading", loaded: 0, error: undefined });
       const ext = extOf(item.file.name) || (item.kind === "video" ? "mp4" : "jpg");
       const pathname = `media/${item.id}/original.${ext}`;
       void (async () => {
         try {
-          const blob = await upload(pathname, item.file, {
-            access: "private",
-            handleUploadUrl: "/api/media/blob-upload",
-            headers: CSRF_HEADERS,
-            contentType: item.file.type || "application/octet-stream",
-            multipart: item.file.size > 100 * 1024 * 1024,
-            abortSignal: controller.signal,
-            onUploadProgress: (e) => patch(item.id, { loaded: e.loaded, total: e.total }),
-          });
+          let storedPath = pathname;
+          if (limits.directUpload === "vercel-blob") {
+            const blob = await upload(pathname, item.file, {
+              access: "private",
+              handleUploadUrl: "/api/media/blob-upload",
+              headers: CSRF_HEADERS,
+              contentType: item.file.type || "application/octet-stream",
+              multipart: item.file.size > 100 * 1024 * 1024,
+              abortSignal: controller!.signal,
+              onUploadProgress: (e) => patch(item.id, { loaded: e.loaded, total: e.total }),
+            });
+            storedPath = blob.pathname;
+          } else {
+            const contentType = item.file.type || "application/octet-stream";
+            const signRes = await fetch("/api/media/s3-upload", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", ...CSRF_HEADERS },
+              body: JSON.stringify({ pathname, contentType, size: item.file.size }),
+            });
+            const signed = await signRes.json().catch(() => ({})) as { url?: string; pathname?: string; error?: string };
+            if (!signRes.ok || !signed.url) throw new Error(signed.error ?? "The upload could not be started.");
+            storedPath = signed.pathname ?? pathname;
+            await new Promise<void>((resolve, reject) => {
+              const direct = new XMLHttpRequest();
+              xhrs.current.set(item.id, direct);
+              direct.open("PUT", signed.url!);
+              direct.setRequestHeader("Content-Type", contentType);
+              direct.upload.onprogress = (e) => {
+                if (e.lengthComputable) patch(item.id, { loaded: e.loaded, total: e.total });
+              };
+              direct.onload = () => direct.status >= 200 && direct.status < 300
+                ? resolve()
+                : reject(new Error(`Cloud storage rejected the upload (${direct.status}).`));
+              direct.onerror = () => reject(new Error("The connection to cloud storage was lost."));
+              direct.onabort = () => reject(new DOMException("Upload canceled", "AbortError"));
+              direct.send(item.file);
+            });
+          }
           patch(item.id, { status: "processing", loaded: item.file.size });
           const res = await fetch("/api/media/blob-finalize", {
             method: "POST",
             headers: { "Content-Type": "application/json", ...CSRF_HEADERS },
             body: JSON.stringify({
-              id: item.id, pathname: blob.pathname, name: item.file.name,
+              id: item.id, pathname: storedPath, name: item.file.name,
               folderId: item.target.folderId, ...item.meta,
             }),
           });
@@ -240,10 +269,12 @@ export function UploadProvider({ limits, children }: { limits: Limits; children:
           patch(item.id, { status: "done", media, note });
           invalidateMedia();
         } catch (error) {
-          if (controller.signal.aborted) patch(item.id, { status: "canceled", error: undefined });
+          if (controller?.signal.aborted || (error instanceof DOMException && error.name === "AbortError"))
+            patch(item.id, { status: "canceled", error: undefined });
           else patch(item.id, { status: "failed", error: error instanceof Error ? error.message : "The upload failed." });
         } finally {
           aborters.current.delete(item.id);
+          xhrs.current.delete(item.id);
         }
       })();
       return;
@@ -301,7 +332,7 @@ export function UploadProvider({ limits, children }: { limits: Limits; children:
       patch(item.id, { status: "canceled", error: undefined });
     };
     xhr.send(item.file);
-  }, [limits.directBlobUpload, patch]);
+  }, [limits.directUpload, patch]);
 
   // Scheduler: keep up to CONCURRENCY uploads running.
   useEffect(() => {

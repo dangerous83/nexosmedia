@@ -1,42 +1,43 @@
 import "server-only";
-import { del, get, list, put } from "@vercel/blob";
 import { config } from "./config";
 import { getRow, upsertMedia, type MediaRow } from "./media";
+import { storage } from "./storage";
 
 const prefix = "nexosphere-meta/media/";
 const keyFor = (id: string) => `${prefix}${id}.json`;
 const g = globalThis as unknown as { __nexoBlobSync?: { at: number; promise: Promise<void> } };
 
 export async function persistMediaRow(row: MediaRow) {
-  if (config.storageDriver !== "vercel-blob") return;
-  await put(keyFor(row.id), JSON.stringify(row), {
-    access: "private", allowOverwrite: true, contentType: "application/json", cacheControlMaxAge: 60,
-  });
+  if (config.storageDriver === "local") return;
+  await storage().putBuffer(keyFor(row.id), Buffer.from(JSON.stringify(row)), "application/json");
 }
 
 export async function persistMedia(id: string) { await persistMediaRow(getRow(id)); }
 
 export async function deleteMediaMetadata(ids: string[]) {
-  if (config.storageDriver === "vercel-blob" && ids.length) await del(ids.map(keyFor));
+  if (config.storageDriver !== "local" && ids.length)
+    await Promise.all(ids.map((id) => storage().delete(keyFor(id))));
 }
 
 /** Hydrate the per-instance SQLite cache from durable Blob sidecars. */
 export async function syncMediaMetadata() {
-  if (config.storageDriver !== "vercel-blob") return;
+  if (config.storageDriver === "local") return;
   const now = Date.now();
   if (g.__nexoBlobSync && now - g.__nexoBlobSync.at < 3000) return g.__nexoBlobSync.promise;
   const promise = (async () => {
-    let cursor: string | undefined;
-    do {
-      const page = await list({ prefix, limit: 1000, cursor });
-      await Promise.all(page.blobs.map(async (blob) => {
-        const result = await get(blob.pathname, { access: "private", useCache: false });
-        if (!result || result.statusCode !== 200 || !result.stream) return;
-        const row = await new Response(result.stream).json() as MediaRow;
-        upsertMedia(row);
+    const keys = await storage().list(prefix);
+    await Promise.all(keys.map(async (key) => {
+        try {
+          const chunks: Buffer[] = [];
+          for await (const chunk of await storage().read(key))
+            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+          const row = JSON.parse(Buffer.concat(chunks).toString("utf8")) as MediaRow;
+          upsertMedia(row);
+        } catch (error) {
+          // One damaged legacy sidecar must not make the whole gallery unavailable.
+          console.error(`[blob-meta] Could not restore ${key}:`, error);
+        }
       }));
-      cursor = page.hasMore ? page.cursor : undefined;
-    } while (cursor);
   })();
   g.__nexoBlobSync = { at: now, promise };
   await promise;

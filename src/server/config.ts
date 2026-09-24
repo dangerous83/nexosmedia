@@ -19,7 +19,15 @@ export const config = {
   // STORAGE_DRIVER was omitted. Self-hosted installs remain local unless explicitly configured.
   storageDriver:
     process.env.STORAGE_DRIVER?.trim() ||
+    (process.env.S3_ENDPOINT?.trim() && process.env.S3_BUCKET?.trim() ? "s3" : "") ||
     (process.env.BLOB_READ_WRITE_TOKEN?.trim() ? "vercel-blob" : "local"),
+  s3: {
+    endpoint: (process.env.S3_ENDPOINT || "").trim(),
+    region: (process.env.S3_REGION || "auto").trim(),
+    bucket: (process.env.S3_BUCKET || "").trim(),
+    accessKeyId: (process.env.S3_ACCESS_KEY_ID || "").trim(),
+    secretAccessKey: (process.env.S3_SECRET_ACCESS_KEY || "").trim(),
+  },
   maxImageBytes: num(process.env.MAX_IMAGE_MB, 50) * 1024 * 1024,
   maxVideoBytes: num(process.env.MAX_VIDEO_MB, 1024) * 1024 * 1024,
   /**

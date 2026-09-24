@@ -1,5 +1,5 @@
 import { createReadStream, mkdirSync } from "node:fs";
-import { rename, writeFile, stat, rm, rmdir, statfs, copyFile, unlink } from "node:fs/promises";
+import { rename, writeFile, stat, rm, rmdir, statfs, copyFile, unlink, readdir } from "node:fs/promises";
 import path from "node:path";
 import type { StorageAdapter } from "./types";
 
@@ -54,6 +54,21 @@ export class LocalStorage implements StorageAdapter {
     } catch {
       return null;
     }
+  }
+
+  async list(prefix: string) {
+    const start = this.resolve(prefix);
+    const keys: string[] = [];
+    const walk = async (dir: string) => {
+      const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
+      for (const entry of entries) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) await walk(full);
+        else keys.push(path.relative(this.root, full).split(path.sep).join("/"));
+      }
+    };
+    await walk(start);
+    return keys;
   }
 
   async delete(key: string) {

@@ -13,6 +13,8 @@ export interface StorageAdapter {
   /** Returns a readable stream; `range` is inclusive on both ends. */
   read(key: string, range?: { start: number; end: number }): Promise<Readable>;
   size(key: string): Promise<number | null>;
+  /** Lists every object key below a server-generated prefix. */
+  list(prefix: string): Promise<string[]>;
   delete(key: string): Promise<void>;
   /** A directory for in-flight uploads on local disk (uploads are streamed here first). */
   tempDir(): string;

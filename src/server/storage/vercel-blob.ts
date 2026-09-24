@@ -1,7 +1,7 @@
 import { createReadStream, mkdirSync } from "node:fs";
 import path from "node:path";
 import { Readable } from "node:stream";
-import { del, get, head, put } from "@vercel/blob";
+import { del, get, head, list, put } from "@vercel/blob";
 import type { StorageAdapter } from "./types";
 
 /** Private, durable object storage for Vercel deployments. */
@@ -33,6 +33,17 @@ export class VercelBlobStorage implements StorageAdapter {
 
   async size(key: string) {
     try { return (await head(key)).size; } catch { return null; }
+  }
+
+  async list(prefix: string) {
+    const keys: string[] = [];
+    let cursor: string | undefined;
+    do {
+      const page = await list({ prefix, limit: 1000, cursor });
+      keys.push(...page.blobs.map((blob) => blob.pathname));
+      cursor = page.hasMore ? page.cursor : undefined;
+    } while (cursor);
+    return keys;
   }
 
   async delete(key: string) { await del(key); }

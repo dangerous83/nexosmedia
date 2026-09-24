@@ -18,7 +18,7 @@ export default async function Page() {
   const limits = {
     maxImageBytes: config.maxImageBytes,
     maxVideoBytes: config.maxVideoBytes,
-    directBlobUpload: config.storageDriver === "vercel-blob",
+    directUpload: (["vercel-blob", "s3"].includes(config.storageDriver) ? config.storageDriver : undefined) as "vercel-blob" | "s3" | undefined,
   };
   return (
     <ToastProvider>

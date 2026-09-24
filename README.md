@@ -20,6 +20,8 @@ Render reads `render.yaml` in this repo and provisions a long-running Node web s
 
 **Vercel:** connect a Vercel Blob store to the project. The injected `BLOB_READ_WRITE_TOKEN` makes the app select durable Blob storage automatically; uploads and their media records then survive deployments and serverless instance changes. Without a connected Blob store, Vercel's local filesystem is temporary and must not be used for real uploads.
 
+**Cloudflare R2:** set `STORAGE_DRIVER=s3` and the five `S3_*` variables below. Uploads go directly from the browser to the private R2 bucket with a short-lived signed URL, while downloads still pass through the app's access check. Configure the bucket's CORS policy to allow `PUT` from the deployed site origin and the `Content-Type` header.
+
 ## Run it
 
 Requirements: **Node.js 22.13 or later** (24 recommended).
@@ -98,9 +100,11 @@ See `.env.example`:
 | --- | --- | --- |
 | `NEXO_PASSPHRASE_HASH` | — (required) | scrypt hash from `npm run set-passphrase` |
 | `NEXO_SESSION_HOURS` | `12` | Session lifetime |
-| `DATA_DIR` | `./data` locally; system temp on Vercel | Local database/files, or the writable per-instance metadata cache when Vercel Blob is active |
-| `STORAGE_DRIVER` | automatic | Uses `vercel-blob` when `BLOB_READ_WRITE_TOKEN` exists, otherwise `local`; set explicitly to override |
+| `DATA_DIR` | `./data` locally; system temp on Vercel | Local database/files, or the writable per-instance metadata cache when object storage is active |
+| `STORAGE_DRIVER` | automatic | Uses `s3` when S3/R2 is configured, then `vercel-blob`, otherwise `local`; set explicitly to override |
 | `BLOB_READ_WRITE_TOKEN` | — | Added by a connected Vercel Blob store; enables durable private Blob storage and direct large uploads |
+| `S3_ENDPOINT` / `S3_REGION` / `S3_BUCKET` | — | S3-compatible store location; Cloudflare R2 uses its account endpoint and region `auto` |
+| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | — | Secret credentials with object read/write permission for the selected bucket |
 | `MAX_IMAGE_MB` / `MAX_VIDEO_MB` | `50` / `1024` | Upload limits |
 | `COOKIE_SECURE` | `true` in production | Set to `false` only to test a production build over plain HTTP on a LAN |
 
@@ -122,10 +126,10 @@ Every pull request also runs the **CI** workflow (`.github/workflows/ci.yml`): a
 
 ## Deployment requirements
 
-- **Persistent storage:** local storage needs a disk that survives restarts and redeploys. On Vercel, connect a Blob store to the project; the app detects its `BLOB_READ_WRITE_TOKEN` automatically and stores originals, previews and durable media metadata there. Other serverless functions and containers without a mounted volume or object store will lose uploads.
+- **Persistent storage:** local storage needs a disk that survives restarts and redeploys. On Vercel, connect Blob or configure a private S3-compatible bucket such as Cloudflare R2. The app stores originals, previews and durable media metadata there. Other serverless functions and containers without a mounted volume or object store will lose uploads.
 - **HTTPS:** serve production over HTTPS so the `Secure` session cookie works.
 - **Passphrase secret:** set `NEXO_PASSPHRASE_HASH` as a secret on the host.
-- **Other object stores:** storage goes through the `StorageAdapter` interface (`src/server/storage/types.ts`). Vercel Blob is included. To use S3, R2, GCS or Azure Blob, add an implementation, register it in `src/server/storage/index.ts` under a new `STORAGE_DRIVER` value, and supply its credentials through environment variables. The routes and UI don't need to change.
+- **Other object stores:** storage goes through the `StorageAdapter` interface (`src/server/storage/types.ts`). Vercel Blob and S3-compatible stores (including R2) are included. GCS or Azure Blob can be added as another adapter.
 - **Multiple instances:** the unlock rate limiter and bulk-download tokens are held per process. If you run several instances, add a shared limit at your proxy (for example on `POST /api/access`) and use sticky sessions, or a shared store, for `/api/media/archive`.
 
 ## Tests

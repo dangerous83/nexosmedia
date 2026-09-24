@@ -1,4 +1,3 @@
-import { head } from "@vercel/blob";
 import sharp from "sharp";
 import { config } from "@/server/config";
 import { persistMediaRow, syncMediaMetadata } from "@/server/blob-meta";
@@ -33,7 +32,7 @@ function fileName(input: unknown, ext: string) {
 
 export const POST = handle(async (req) => {
   await requireAccess(req);
-  if (config.storageDriver !== "vercel-blob") return fail(404, "Direct uploads are not enabled.");
+  if (!['vercel-blob', 's3'].includes(config.storageDriver)) return fail(404, "Direct uploads are not enabled.");
   const body = await readJson<Body>(req);
   const id = typeof body.id === "string" && /^[0-9a-f-]{36}$/i.test(body.id) ? body.id : "";
   const pathname = typeof body.pathname === "string" ? body.pathname : "";
@@ -50,19 +49,18 @@ export const POST = handle(async (req) => {
     if (!(error instanceof HttpError) || error.status !== 404) throw error;
   }
 
-  let blob: Awaited<ReturnType<typeof head>>;
-  try { blob = await head(pathname); }
-  catch { throw new HttpError(404, "The uploaded file could not be found. Please try the upload again."); }
-  if (blob.size <= 0) throw new HttpError(400, "This file is empty.");
+  const blobSize = await storage().size(pathname);
+  if (blobSize == null) throw new HttpError(404, "The uploaded file could not be found. Please try the upload again.");
+  if (blobSize <= 0) throw new HttpError(400, "This file is empty.");
 
   // The browser-provided MIME type and extension are not trusted. Read the signature from the
   // durable object, just as the local upload path does.
-  const detected = sniff(await readStored(pathname, { start: 0, end: Math.min(63, blob.size - 1) }));
+  const detected = sniff(await readStored(pathname, { start: 0, end: Math.min(63, blobSize - 1) }));
   if (detected && "unsupported" in detected) throw new HttpError(415, detected.unsupported);
   if (!detected) throw new HttpError(415, "This file type isn't supported. Upload JPEG, PNG or WebP images, or MP4 and WebM videos.");
   const kind: MediaKind = detected.kind;
   const limit = kind === "video" ? config.maxVideoBytes : config.maxImageBytes;
-  if (blob.size > limit) throw new HttpError(413, `This ${kind} exceeds the upload limit.`);
+  if (blobSize > limit) throw new HttpError(413, `This ${kind} exceeds the upload limit.`);
 
   let width = finite(body.width, 16384);
   let height = finite(body.height, 16384);
@@ -90,7 +88,7 @@ export const POST = handle(async (req) => {
   const wantedFolder = clean(body.folderId, 64) || null;
   const row: MediaRow = {
     id, kind, mime: detected.mime, ext: detected.ext,
-    original_name: fileName(body.name, detected.ext), size: blob.size,
+    original_name: fileName(body.name, detected.ext), size: blobSize,
     width, height, duration, storage_key: pathname, thumb_key: thumbKey,
     created_at: Date.now(), folder_id: wantedFolder && folderExists(wantedFolder) ? wantedFolder : null,
     trashed_at: null,
