@@ -4,7 +4,8 @@ import { storage } from "@/server/storage";
 import { zipSize, zipStream } from "@/server/zip";
 
 export const runtime = "nodejs";
-export const maxDuration = 3600;
+// Vercel Hobby deployments reject values above 300 seconds.
+export const maxDuration = 300;
 
 /** Step 2 of a bulk download: stream the prepared zip. Still requires a workspace session. */
 export const GET = handle<{ params: Promise<{ token: string }> }>(async (req, { params }) => {
