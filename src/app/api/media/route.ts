@@ -14,10 +14,12 @@ export const GET = handle(async (req) => {
   await syncMediaMetadata();
   const p = new URL(req.url).searchParams;
   const type = p.get("type");
+  const orientation = p.get("orientation");
   const sort = p.get("sort") as SortKey | null;
   return json(
     listMedia({
       type: type === "image" || type === "video" ? type : null,
+      orientation: type === "video" && (orientation === "vertical" || orientation === "horizontal") ? orientation : null,
       folder: p.get("folder"),
       trash: p.get("trash") === "1",
       q: p.get("q"),

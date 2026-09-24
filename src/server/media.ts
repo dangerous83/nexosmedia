@@ -37,6 +37,7 @@ const ORDER: Record<SortKey, string> = {
 
 export interface Scope {
   type?: MediaKind | null;
+  orientation?: "vertical" | "horizontal" | null;
   /** A folder id, or "none" for unfiled items. Omit for the whole workspace. */
   folder?: string | null;
   trash?: boolean;
@@ -46,6 +47,12 @@ function scopeSql(o: Scope & { q?: string | null }) {
   const where = [o.trash ? "trashed_at IS NOT NULL" : "trashed_at IS NULL"];
   const args: (string | number)[] = [];
   if (o.type) { where.push("kind = ?"); args.push(o.type); }
+  if (o.type === "video" && o.orientation === "vertical") {
+    where.push("width IS NOT NULL AND height IS NOT NULL AND height > width");
+  } else if (o.type === "video" && o.orientation === "horizontal") {
+    // Square videos belong with horizontal so every video with dimensions has a home.
+    where.push("width IS NOT NULL AND height IS NOT NULL AND width >= height");
+  }
   if (o.folder === "none") where.push("folder_id IS NULL");
   else if (o.folder) { where.push("folder_id = ?"); args.push(o.folder); }
   const q = o.q?.trim().toLowerCase();

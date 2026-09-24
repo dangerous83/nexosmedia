@@ -230,6 +230,42 @@
   background: rgba(18, 19, 28, 0.85); border: 1px solid var(--border); border-radius: 14px;
 }
 .toolbar .btn { height: 40px; }
+
+.video-orientation {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: -6px 0 20px;
+}
+.video-orientation-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 72px;
+  padding: 14px 18px;
+  text-align: left;
+  color: var(--text-2);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  transition: color var(--d-1), background var(--d-1), border-color var(--d-1), box-shadow var(--d-1);
+}
+.video-orientation-option:hover { color: var(--text); border-color: var(--border-2); background: var(--surface-2); }
+.video-orientation-option[aria-pressed="true"] {
+  color: var(--text);
+  border-color: rgba(132, 95, 255, 0.72);
+  background: var(--accent-bg);
+  box-shadow: 0 0 0 1px rgba(132, 95, 255, 0.18), 0 12px 30px -22px var(--accent);
+}
+.video-orientation-option > svg { width: 26px; height: 26px; flex: none; color: var(--accent); }
+.video-orientation-option > span { display: grid; gap: 3px; }
+.video-orientation-option strong { font-size: var(--text-base); }
+.video-orientation-option small { color: var(--text-3); font-size: var(--text-xs); }
+@media (max-width: 560px) {
+  .video-orientation { gap: 8px; }
+  .video-orientation-option { min-height: 64px; padding: 12px; gap: 10px; }
+  .video-orientation-option > svg { width: 22px; height: 22px; }
+}
 .tool-select[aria-pressed="true"] { background: rgba(139, 92, 246, 0.2); border-color: rgba(165, 139, 255, 0.4); color: var(--text); }
 .tool-end { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .toolbar .select { height: 40px; width: 180px; background-color: var(--surface-2); border-color: transparent; border-radius: 10px; }

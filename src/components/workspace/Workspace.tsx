@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import * as Menu from "@radix-ui/react-dropdown-menu";
 import {
   AlertCircle, CheckSquare, ChevronRight, Download, Folder as FolderIcon, FolderInput, FolderPlus, Grid2x2, Grid3x3, LayoutGrid, List, Square,
-  Menu as MenuIcon, MoreHorizontal, Pencil, RotateCcw, RotateCw, Search, SearchX, Trash2, Upload, X,
+  Menu as MenuIcon, Monitor, MoreHorizontal, Pencil, RotateCcw, RotateCw, Search, SearchX, Smartphone, Trash2, Upload, X,
 } from "lucide-react";
 import { BrandSymbol } from "@/components/Brand";
 import { useOpenDrawer } from "@/components/shell/AppShell";
@@ -59,6 +59,7 @@ export function Workspace({ limits }: { limits: Limits }) {
   const q = params.get("q") ?? "";
   const sortParam = params.get("sort");
   const sort: SortKey = SORTS.some((s) => s.key === sortParam) ? (sortParam as SortKey) : "newest";
+  const orientation = params.get("orientation") === "horizontal" ? "horizontal" : "vertical";
   const { data: fdata } = useQuery<{ folders: Folder[] }>("/api/folders");
   const { data: summary } = useQuery<Summary>("/api/summary");
   const folders = useMemo(() => fdata?.folders ?? [], [fdata]);
@@ -96,7 +97,7 @@ export function Workspace({ limits }: { limits: Limits }) {
           </div>
         </main>
       ) : (
-        <MediaView key={key} loc={loc} title={title} folder={folder} folders={folders} q={q} sort={sort} setParam={setParam} summary={summary} limits={limits} />
+        <MediaView key={key} loc={loc} title={title} folder={folder} folders={folders} q={q} sort={sort} orientation={orientation} setParam={setParam} summary={summary} limits={limits} />
       )}
     </>
   );
@@ -199,12 +200,18 @@ function UtilityHeader({ loc, title, folder, q, setParam, summary }: {
 
 // ——— Media views: All, Images, Videos, a folder, Trash ———
 
-function MediaView({ loc, title, folder, folders, q, sort, setParam, summary, limits }: {
+function MediaView({ loc, title, folder, folders, q, sort, orientation, setParam, summary, limits }: {
   loc: Loc; title: string; folder: Folder | null; folders: Folder[]; q: string; sort: SortKey;
+  orientation: "vertical" | "horizontal";
   setParam: (p: Record<string, string | null>) => void; summary?: Summary; limits: Limits;
 }) {
   const inTrash = loc.kind === "trash";
-  const list = useMediaList({ ...mediaScope(loc), q, sort: sort === "newest" ? null : sort });
+  const list = useMediaList({
+    ...mediaScope(loc),
+    orientation: loc.kind === "videos" ? orientation : null,
+    q,
+    sort: sort === "newest" ? null : sort,
+  });
   const [prefs, setPrefs] = usePrefs();
   const { previewPending } = useUploads();
   const dialogs = useDialogs();
@@ -215,8 +222,9 @@ function MediaView({ loc, title, folder, folders, q, sort, setParam, summary, li
   const [selectMode, setSelectMode] = useState(false);
   const anchor = useRef<number | null>(null);
   const selecting = selectMode || selected.size > 0;
-  const [lastScope, setLastScope] = useState(`${q}|${sort}`);
-  if (`${q}|${sort}` !== lastScope) { setLastScope(`${q}|${sort}`); setSelected(new Set()); }
+  const scopeKey = `${q}|${sort}|${loc.kind === "videos" ? orientation : ""}`;
+  const [lastScope, setLastScope] = useState(scopeKey);
+  if (scopeKey !== lastScope) { setLastScope(scopeKey); setSelected(new Set()); }
   const clearSelection = useCallback(() => { setSelected(new Set()); setSelectMode(false); }, []);
   // Drop ids that left the list (trashed, moved out, deleted).
   useEffect(() => {
@@ -304,6 +312,27 @@ function MediaView({ loc, title, folder, folders, q, sort, setParam, summary, li
         )}
 
         {!inTrash && (summary ? <UploadZone size={zoneSize} limits={limits} folderName={folder?.name} /> : <div className="zone-skeleton skeleton" aria-hidden />)}
+
+        {loc.kind === "videos" && (
+          <div className="video-orientation" role="group" aria-label="Video orientation">
+            <button
+              className="video-orientation-option"
+              aria-pressed={orientation === "vertical"}
+              onClick={() => setParam({ orientation: null })}
+            >
+              <Smartphone aria-hidden />
+              <span><strong>Vertical</strong><small>Portrait videos</small></span>
+            </button>
+            <button
+              className="video-orientation-option"
+              aria-pressed={orientation === "horizontal"}
+              onClick={() => setParam({ orientation: "horizontal" })}
+            >
+              <Monitor aria-hidden />
+              <span><strong>Horizontal</strong><small>Landscape videos</small></span>
+            </button>
+          </div>
+        )}
 
         {!(workspaceEmpty && loc.kind === "all") && (
           <>
