@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { hasAccess, isConfigured } from "@/server/access";
-import { BrandSymbol, Wordmark } from "@/components/Brand";
+import { BrandSymbol } from "@/components/Brand";
 import { UnlockForm } from "./UnlockForm";
 
 export const metadata: Metadata = { title: "Unlock" };
@@ -13,9 +13,7 @@ export default async function UnlockPage() {
     <main className="access">
       <div className="access-card">
         <div className="access-brand">
-          <BrandSymbol size={72} priority />
-          <Wordmark height={14} />
-          <span className="brand-tag">Media Space</span>
+          <BrandSymbol size={96} className="access-logo" priority />
         </div>
         <h1 className="access-title">Your private media space.</h1>
         <p className="access-sub">Enter the workspace passphrase to upload and view images and videos.</p>

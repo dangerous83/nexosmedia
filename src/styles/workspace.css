@@ -26,6 +26,8 @@
 .side-top { display: grid; gap: 16px; margin-bottom: 6px; }
 .side-brand { display: flex; align-items: center; gap: 10px; padding: 4px 6px; border-radius: var(--r-md); }
 .side-brand img { flex: none; }
+.side-brand > img { transition: transform var(--d-2) var(--ease), filter var(--d-2) var(--ease); filter: drop-shadow(0 4px 12px rgba(90, 70, 255, 0.35)); }
+.side-brand:hover > img { transform: translateY(-2px) rotate(-4deg) scale(1.05); filter: drop-shadow(0 7px 16px rgba(90, 70, 255, 0.48)); }
 .side-brand-text { display: grid; gap: 5px; min-width: 0; }
 .side-brand-tag { font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
 .side-upload { width: 100%; height: 42px; justify-content: center; }
@@ -93,6 +95,10 @@
 @keyframes drawer-in { from { transform: translateX(-20px); opacity: 0; } to { transform: none; opacity: 1; } }
 .drawer-close { position: absolute; top: 12px; right: 8px; z-index: 1; }
 .drawer .side-brand { margin-right: 44px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .side-brand > img { transition: none; }
+}
 
 /* ═══════════ Utility header ═══════════ */
 .uhead {

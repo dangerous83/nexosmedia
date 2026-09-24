@@ -61,17 +61,19 @@
       background: linear-gradient(180deg, rgba(22, 24, 34, 0.9), rgba(14, 15, 22, 0.94));
       border: 1px solid var(--border-2); box-shadow: var(--shadow-3);
     }
-    .access-brand { display: grid; justify-items: center; gap: 12px; margin-bottom: 14px; }
+    .access-brand { position: relative; display: grid; justify-items: center; margin-bottom: 18px; }
+    .access-brand::before {
+      content: ""; position: absolute; width: 116px; height: 116px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(78, 201, 255, 0.22), rgba(123, 60, 255, 0.12) 48%, transparent 72%);
+      filter: blur(4px); animation: logo-aura 3.6s ease-in-out infinite;
+    }
     .brand-sphere {
-      width: 72px; height: 72px; border-radius: 50%;
-      background: var(--brand-gradient);
-      box-shadow: 0 14px 34px rgba(90, 70, 255, 0.5), inset -8px -12px 24px rgba(0,0,0,0.35), inset 6px 8px 18px rgba(255,255,255,0.2);
+      width: 72px; height: 72px; border-radius: 50%; object-fit: contain;
+      filter: drop-shadow(0 14px 28px rgba(90, 70, 255, 0.48));
     }
-    .brand-wordmark { font-size: 22px; font-weight: 800; letter-spacing: 0.14em; }
-    .brand-tag {
-      font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
-      color: var(--text-3); padding: 4px 10px; border: 1px solid var(--border-2); border-radius: var(--r-full);
-    }
+    .access-brand .brand-sphere { position: relative; z-index: 1; width: 92px; height: 92px; animation: logo-float 4s ease-in-out infinite; }
+    @keyframes logo-float { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-8px) scale(1.035); } }
+    @keyframes logo-aura { 0%, 100% { opacity: 0.55; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.08); } }
     .access-title { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.025em; text-align: center; margin: 4px 0 0; }
     .access-sub { color: var(--text-2); text-align: center; margin: 0 0 14px; }
     .access-form { display: grid; gap: 10px; }
@@ -111,9 +113,10 @@
     }
     @media (max-width: 767px) { .side { display: none; } .side.is-open { display: flex; position: fixed; z-index: 90; width: min(300px, 86vw); box-shadow: var(--shadow-3); } }
     .side-brand { display: flex; align-items: center; gap: 10px; padding: 4px 6px 16px; }
-    .side-brand .brand-sphere { width: 32px; height: 32px; box-shadow: 0 4px 14px rgba(90, 70, 255, 0.4); }
+    .side-brand .brand-sphere { width: 34px; height: 34px; filter: drop-shadow(0 4px 12px rgba(90, 70, 255, 0.4)); transition: transform var(--d-2) var(--ease); }
+    .side-brand:hover .brand-sphere { transform: translateY(-2px) rotate(-4deg) scale(1.05); }
     .side-brand-text { display: grid; gap: 3px; }
-    .side-brand-name { font-weight: 700; font-size: 13px; letter-spacing: 0.06em; }
+    .side-brand-wordmark { display: block; width: 126px; height: auto; }
     .side-brand-sub { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
     .side-upload { width: 100%; height: 42px; margin-bottom: 12px; }
     .nav-section { padding: 18px 10px 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
@@ -289,6 +292,10 @@
     .demo-banner a { color: var(--accent); font-weight: 600; }
 
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    @media (prefers-reduced-motion: reduce) {
+      .access-brand::before, .access-brand .brand-sphere { animation: none; }
+      .side-brand .brand-sphere { transition: none; }
+    }
   </style>
 </head>
 <body>
@@ -297,9 +304,7 @@
 <div class="access" id="unlock" role="dialog" aria-label="Unlock workspace">
   <div class="access-card">
     <div class="access-brand">
-      <div class="brand-sphere" aria-hidden="true"></div>
-      <div class="brand-wordmark">NEXOSPHERE</div>
-      <span class="brand-tag">Media Space</span>
+      <img class="brand-sphere" src="brand/nexosphere-symbol-192.png" alt="NEXOSPHERE" />
     </div>
     <h1 class="access-title">Your private media space.</h1>
     <p class="access-sub">Enter the workspace passphrase to upload and view images and videos.</p>
@@ -323,9 +328,9 @@
   <!-- Sidebar -->
   <aside class="side" id="side">
     <div class="side-brand">
-      <div class="brand-sphere" aria-hidden="true"></div>
+      <img class="brand-sphere" src="brand/nexosphere-symbol-96.png" alt="" aria-hidden="true" />
       <div class="side-brand-text">
-        <div class="side-brand-name">NEXOSPHERE</div>
+        <img class="side-brand-wordmark" src="brand/nexosphere-wordmark.png" alt="NEXOSPHERE" />
         <div class="side-brand-sub">Media Space</div>
       </div>
     </div>

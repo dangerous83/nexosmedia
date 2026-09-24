@@ -18,9 +18,19 @@
   background: linear-gradient(180deg, rgba(22, 24, 34, 0.9), rgba(14, 15, 22, 0.94));
   border: 1px solid var(--border-2); box-shadow: var(--shadow-3), 0 0 0 1px rgba(155, 123, 255, 0.06) inset;
 }
-.access-brand { display: grid; justify-items: center; gap: 12px; margin-bottom: 14px; }
-.access-brand img:first-child { filter: drop-shadow(0 14px 34px rgba(90, 70, 255, 0.5)); }
-.access-brand .brand-tag { padding-left: 0; border: 0; }
+.access-brand { position: relative; display: grid; justify-items: center; margin-bottom: 18px; }
+.access-brand::before {
+  content: ""; position: absolute; width: 122px; height: 122px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(78, 201, 255, 0.22), rgba(123, 60, 255, 0.12) 48%, transparent 72%);
+  filter: blur(4px); animation: access-logo-aura 3.6s ease-in-out infinite;
+}
+.access-logo {
+  position: relative; z-index: 1;
+  filter: drop-shadow(0 16px 30px rgba(90, 70, 255, 0.5));
+  animation: access-logo-float 4s ease-in-out infinite;
+}
+@keyframes access-logo-float { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-8px) scale(1.035); } }
+@keyframes access-logo-aura { 0%, 100% { opacity: 0.55; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.08); } }
 .access-title { font-size: clamp(1.4rem, 1.2rem + 0.8vw, 1.7rem); font-weight: 700; letter-spacing: -0.025em; text-align: center; }
 .access-sub { color: var(--text-2); text-align: center; margin-bottom: 14px; }
 .access-form { display: grid; gap: 10px; }
@@ -30,3 +40,7 @@
 .access-setup > svg { width: 20px; height: 20px; flex: none; color: var(--warning); margin-top: 1px; }
 .access-setup-title { font-weight: 600; color: var(--text); margin-bottom: 2px; }
 .access-setup code { font-size: 0.95em; padding: 1px 6px; border-radius: 6px; background: rgba(0,0,0,0.35); color: var(--text); }
+
+@media (prefers-reduced-motion: reduce) {
+  .access-brand::before, .access-logo { animation: none; }
+}
