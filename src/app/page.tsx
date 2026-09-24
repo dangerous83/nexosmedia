@@ -15,7 +15,11 @@ export const dynamic = "force-dynamic";
 export default async function Page() {
   // Server-side gate. Every API route used by the workspace checks the session again.
   if (!(await hasAccess())) redirect("/unlock");
-  const limits = { maxImageBytes: config.maxImageBytes, maxVideoBytes: config.maxVideoBytes };
+  const limits = {
+    maxImageBytes: config.maxImageBytes,
+    maxVideoBytes: config.maxVideoBytes,
+    directBlobUpload: config.storageDriver === "vercel-blob",
+  };
   return (
     <ToastProvider>
       <ConfirmProvider>

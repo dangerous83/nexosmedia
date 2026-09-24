@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { UploadCloud } from "lucide-react";
+import { upload } from "@vercel/blob/client";
 import { invalidateMedia } from "@/lib/store";
 import { CSRF_HEADERS } from "@/lib/api";
 import { formatBytes } from "@/lib/format";
@@ -122,7 +123,7 @@ function inspectVideo(file: File, url: string): Promise<{ width?: number; height
   });
 }
 
-interface Limits { maxImageBytes: number; maxVideoBytes: number }
+interface Limits { maxImageBytes: number; maxVideoBytes: number; directBlobUpload?: boolean }
 
 export function UploadProvider({ limits, children }: { limits: Limits; children: React.ReactNode }) {
   const [items, setItems] = useState<UploadItem[]>([]);
@@ -135,6 +136,7 @@ export function UploadProvider({ limits, children }: { limits: Limits; children:
     setTargetState((cur) => (cur.folderId === t.folderId && cur.label === t.label ? cur : t));
   }, []);
   const xhrs = useRef(new Map<string, XMLHttpRequest>());
+  const aborters = useRef(new Map<string, AbortController>());
   const inputRef = useRef<HTMLInputElement>(null);
   const itemsRef = useRef(items);
   itemsRef.current = items;
@@ -193,6 +195,59 @@ export function UploadProvider({ limits, children }: { limits: Limits; children:
   }, [validate, patch]);
 
   const start = useCallback((item: UploadItem) => {
+    if (limits.directBlobUpload) {
+      if (aborters.current.has(item.id)) return;
+      const controller = new AbortController();
+      aborters.current.set(item.id, controller);
+      patch(item.id, { status: "uploading", loaded: 0, error: undefined });
+      const ext = extOf(item.file.name) || (item.kind === "video" ? "mp4" : "jpg");
+      const pathname = `media/${item.id}/original.${ext}`;
+      void (async () => {
+        try {
+          const blob = await upload(pathname, item.file, {
+            access: "private",
+            handleUploadUrl: "/api/media/blob-upload",
+            headers: CSRF_HEADERS,
+            contentType: item.file.type || "application/octet-stream",
+            multipart: item.file.size > 100 * 1024 * 1024,
+            abortSignal: controller.signal,
+            onUploadProgress: (e) => patch(item.id, { loaded: e.loaded, total: e.total }),
+          });
+          patch(item.id, { status: "processing", loaded: item.file.size });
+          const res = await fetch("/api/media/blob-finalize", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...CSRF_HEADERS },
+            body: JSON.stringify({
+              id: item.id, pathname: blob.pathname, name: item.file.name,
+              folderId: item.target.folderId, ...item.meta,
+            }),
+          });
+          const body = await res.json().catch(() => ({})) as { media?: Media; folderMissing?: boolean; error?: string };
+          if (!res.ok || !body.media) throw new Error(body.error ?? `The server couldn't save this file (${res.status}).`);
+          let media = body.media;
+          let note = body.folderMissing ? `“${item.target.label}” no longer exists, so this file was saved to All media.` : item.note;
+          if (media.kind === "video" && item.poster) {
+            patch(item.id, { status: "finalizing", media });
+            invalidateMedia();
+            try {
+              const posterRes = await fetch(`/api/media/${media.id}/poster`, {
+                method: "PUT", body: item.poster, headers: { "Content-Type": "image/jpeg", ...CSRF_HEADERS },
+              });
+              if (posterRes.ok) media = (await posterRes.json()).media;
+              else note = "Uploaded without a preview frame.";
+            } catch { note = "Uploaded without a preview frame."; }
+          }
+          patch(item.id, { status: "done", media, note });
+          invalidateMedia();
+        } catch (error) {
+          if (controller.signal.aborted) patch(item.id, { status: "canceled", error: undefined });
+          else patch(item.id, { status: "failed", error: error instanceof Error ? error.message : "The upload failed." });
+        } finally {
+          aborters.current.delete(item.id);
+        }
+      })();
+      return;
+    }
     if (xhrs.current.has(item.id)) return;
     const xhr = new XMLHttpRequest();
     xhrs.current.set(item.id, xhr);
@@ -246,7 +301,7 @@ export function UploadProvider({ limits, children }: { limits: Limits; children:
       patch(item.id, { status: "canceled", error: undefined });
     };
     xhr.send(item.file);
-  }, [patch]);
+  }, [limits.directBlobUpload, patch]);
 
   // Scheduler: keep up to CONCURRENCY uploads running.
   useEffect(() => {
@@ -258,7 +313,10 @@ export function UploadProvider({ limits, children }: { limits: Limits; children:
   const cancel = useCallback((id: string) => {
     const it = itemsRef.current.find((i) => i.id === id);
     if (!it) return;
-    if (it.status === "uploading") xhrs.current.get(id)?.abort();
+    if (it.status === "uploading") {
+      xhrs.current.get(id)?.abort();
+      aborters.current.get(id)?.abort();
+    }
     else if (it.status === "queued" || it.status === "preparing") patch(id, { status: "canceled" });
   }, [patch]);
 

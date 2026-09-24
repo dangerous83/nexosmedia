@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { HttpError } from "./http";
 import type { Folder, Media, MediaKind, MediaPage, SortKey, Summary } from "@/lib/types";
 
-interface MediaRow {
+export interface MediaRow {
   id: string; kind: MediaKind; mime: string; ext: string; original_name: string; size: number;
   width: number | null; height: number | null; duration: number | null;
   storage_key: string; thumb_key: string | null; created_at: number;
@@ -87,6 +87,20 @@ export function insertMedia(r: Omit<MediaRow, "trashed_at">) {
     `INSERT INTO media (id, kind, mime, ext, original_name, size, width, height, duration, storage_key, thumb_key, created_at, folder_id)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(r.id, r.kind, r.mime, r.ext, r.original_name, r.size, r.width, r.height, r.duration, r.storage_key, r.thumb_key, r.created_at, r.folder_id);
+}
+
+/** Restores durable object-store metadata into a fresh serverless SQLite cache. */
+export function upsertMedia(r: MediaRow) {
+  db().prepare(
+    `INSERT INTO media (id, kind, mime, ext, original_name, size, width, height, duration, storage_key, thumb_key, created_at, folder_id, trashed_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       kind=excluded.kind, mime=excluded.mime, ext=excluded.ext, original_name=excluded.original_name,
+       size=excluded.size, width=excluded.width, height=excluded.height, duration=excluded.duration,
+       storage_key=excluded.storage_key, thumb_key=excluded.thumb_key, created_at=excluded.created_at,
+       folder_id=excluded.folder_id, trashed_at=excluded.trashed_at`,
+  ).run(r.id, r.kind, r.mime, r.ext, r.original_name, r.size, r.width, r.height, r.duration,
+    r.storage_key, r.thumb_key, r.created_at, r.folder_id, r.trashed_at);
 }
 
 export function setThumbKey(id: string, key: string) {

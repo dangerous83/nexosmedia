@@ -1,5 +1,6 @@
 import { handle, json, requireAccess } from "@/server/http";
 import { listMedia } from "@/server/media";
+import { syncMediaMetadata } from "@/server/blob-meta";
 import type { SortKey } from "@/lib/types";
 
 const SORTS: SortKey[] = ["newest", "oldest", "name", "size"];
@@ -10,6 +11,7 @@ const SORTS: SortKey[] = ["newest", "oldest", "name", "size"];
  */
 export const GET = handle(async (req) => {
   await requireAccess(req);
+  await syncMediaMetadata();
   const p = new URL(req.url).searchParams;
   const type = p.get("type");
   const sort = p.get("sort") as SortKey | null;
