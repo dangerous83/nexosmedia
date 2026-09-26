@@ -14,6 +14,15 @@ export async function persistMediaRow(row: MediaRow) {
 
 export async function persistMedia(id: string) { await persistMediaRow(getRow(id)); }
 
+/** Re-writes the durable sidecars for rows whose state changed (trash, restore, move, rename). */
+export async function persistMediaMany(ids: string[]) {
+  if (config.storageDriver === "local" || !ids.length) return;
+  await Promise.all(ids.map(async (id) => {
+    try { await persistMediaRow(getRow(id)); }
+    catch (error) { console.error(`[blob-meta] Could not persist ${id}:`, error); }
+  }));
+}
+
 export async function deleteMediaMetadata(ids: string[]) {
   if (config.storageDriver !== "local" && ids.length)
     await Promise.all(ids.map((id) => storage().delete(keyFor(id))));
