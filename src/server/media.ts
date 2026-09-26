@@ -236,9 +236,9 @@ export function renameFolder(id: string, input: unknown) {
 /** Deletes a folder only. Its media (including trashed items) move back to the unfiled library. */
 export function deleteFolder(id: string) {
   getFolderRow(id);
-  let moved = 0;
+  const moved = (db().prepare("SELECT id FROM media WHERE folder_id = ?").all(id) as { id: string }[]).map((r) => r.id);
   tx(() => {
-    moved = Number(db().prepare("UPDATE media SET folder_id = NULL WHERE folder_id = ?").run(id).changes);
+    db().prepare("UPDATE media SET folder_id = NULL WHERE folder_id = ?").run(id);
     db().prepare("DELETE FROM folders WHERE id = ?").run(id);
   });
   return moved;
