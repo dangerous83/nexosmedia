@@ -6,6 +6,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { useReturnFocus } from "@/lib/focus";
 import { usePrefs } from "@/lib/store";
+import { parseLoc } from "@/lib/location";
 import { Sidebar } from "./Sidebar";
 
 /*
@@ -21,11 +22,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [drawer, setDrawer] = useState(false);
   const returnFocus = useReturnFocus();
   const params = useSearchParams();
+  const launcher = parseLoc(params).kind === "launcher";
   useEffect(() => setDrawer(false), [params]);
+  useEffect(() => {
+    document.documentElement.dataset.brand = prefs.brand;
+  }, [prefs.brand]);
 
   return (
     <DrawerCtx.Provider value={() => setDrawer(true)}>
-      <div className="app" data-rail={prefs.sidebarCollapsed || undefined}>
+      <div className="app" data-brand={prefs.brand} data-launcher={launcher || undefined} data-rail={prefs.sidebarCollapsed || undefined}>
         <a href="#main" className="skip-link">Skip to media</a>
         <aside className="app-side" aria-label="Sidebar">
           <Suspense><Sidebar rail={prefs.sidebarCollapsed} canToggle onToggleRail={() => setPrefs({ sidebarCollapsed: !prefs.sidebarCollapsed })} /></Suspense>

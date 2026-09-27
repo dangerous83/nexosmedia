@@ -116,8 +116,10 @@ res = await A.req(`/api/media/${imgId}/file?download=1`);
 const bytes = Buffer.from(await res.arrayBuffer());
 ok(bytes.equals(readFileSync(fx.landscape)), "download is byte-identical to the original");
 ok(/attachment;.*Mountain/.test(res.headers.get("content-disposition") ?? ""), "download uses the original filename");
+ok(res.headers.get("content-type") === "application/octet-stream", "download is forced as an attachment for iOS Safari");
 res = await A.req(`/api/media/${vidId}/file`, { headers: { range: "bytes=0-99" } });
 ok(res.status === 206 && (await res.arrayBuffer()).byteLength === 100, "video Range request → 206");
+ok(res.headers.get("content-type") === "video/webm", "inline video keeps its playable media type");
 ok(DATA_DIR && !existsSync(path.join(process.cwd(), "public", "media")), "originals are not under public/");
 
 console.log("List, search, filter, sort");

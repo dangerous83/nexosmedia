@@ -12,7 +12,9 @@ export async function serveObject(
   const size = await storage().size(key);
   if (size == null) return fail(404, "The file for this item is missing from storage.");
   const headers = new Headers({
-    "Content-Type": opts.contentType,
+    // iOS Safari may ignore Content-Disposition for a known media MIME and open its native
+    // player instead. An attachment is intentionally opaque; inline previews keep the real MIME.
+    "Content-Type": opts.download ? "application/octet-stream" : opts.contentType,
     "Accept-Ranges": "bytes",
     ETag: `"${opts.etag}"`,
     "Cache-Control": opts.immutable ? "private, max-age=31536000, immutable" : "private, max-age=3600",
@@ -22,6 +24,7 @@ export async function serveObject(
   if (opts.download) {
     const ascii = opts.download.replace(/[^\x20-\x7e]/g, "_").replace(/["\\]/g, "_");
     headers.set("Content-Disposition", `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(opts.download)}`);
+    headers.set("Content-Transfer-Encoding", "binary");
   }
   if (req.headers.get("if-none-match") === `"${opts.etag}"`) return new Response(null, { status: 304, headers });
 

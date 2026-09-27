@@ -9,6 +9,7 @@
 .viewer-bar { position: relative; z-index: 3; display: flex; align-items: center; gap: 10px; height: 60px; padding: 0 16px 0 10px; }
 .viewer-bar-title { font-size: var(--text-md); font-weight: 600; flex: 1; }
 .viewer-count { color: var(--text-2); font-size: var(--text-sm); padding: 4px 10px; border-radius: var(--r-full); background: var(--surface-2); border: 1px solid var(--border); white-space: nowrap; }
+.viewer-mobile-download { display: none; flex: none; }
 .viewer-stage { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; overflow: hidden; padding: 8px 76px 76px; user-select: none; touch-action: pan-y; }
 .viewer-stage[data-zoomed] { cursor: grab; touch-action: none; }
 .viewer-stage[data-zoomed]:active { cursor: grabbing; }
@@ -18,6 +19,12 @@
 .viewer-error { display: grid; justify-items: center; gap: 10px; text-align: center; max-width: 440px; padding: 24px; }
 .viewer-error svg { width: 32px; height: 32px; color: var(--warning); }
 .viewer-error-title { font-size: var(--text-lg); font-weight: 650; }
+.viewer-stage-fallback { isolation: isolate; }
+.viewer-fallback-poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; filter: brightness(0.45) blur(1px); }
+.viewer-error-over-poster {
+  position: relative; z-index: 1; border: 1px solid var(--border-2); border-radius: var(--r-lg);
+  background: rgba(13, 14, 21, 0.88); backdrop-filter: blur(14px); box-shadow: var(--shadow-3);
+}
 .viewer-nav {
   position: absolute; z-index: 3; top: 50%; transform: translateY(-50%); width: 48px; height: 48px; border-radius: 50%;
   display: grid; place-items: center; background: rgba(20, 22, 31, 0.82); border: 1px solid var(--border-2); color: var(--text);
@@ -62,7 +69,11 @@
 }
 @media (max-width: 639px) {
   .viewer-stage-wrap { height: calc(100dvh - 76px); }
-  .viewer-bar { height: 56px; padding: 0 12px 0 4px; }
+  .viewer-bar { height: calc(56px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) 8px 0 4px; }
+  .viewer-close, .viewer-mobile-download { width: 44px; height: 44px; }
+  .viewer-mobile-download { display: inline-flex; }
+  .viewer-bar-title { font-size: var(--text-sm); }
+  .viewer-count { padding-inline: 8px; }
 }
 @media (max-width: 400px) { .viewer-zoom .icon-btn:last-child { display: none; } }
 @media (max-height: 500px) and (orientation: landscape) {

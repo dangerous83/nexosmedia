@@ -15,3 +15,18 @@ export function Wordmark({ height = 12, className }: { height?: number; classNam
     <img src="/brand/nexosphere-wordmark.png" alt="NEXOSPHERE" className={className} width={Math.round((height * 805) / 51)} height={height} style={{ height, width: "auto" }} />
   );
 }
+
+/** Official NEXUFLOW artwork supplied by the workspace owner. */
+export function NexuflowLogo({ height = 28, className }: { height?: number; className?: string }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/brand/nexuflow-logo.png"
+      alt="NEXUFLOW"
+      className={className}
+      width={Math.round(height * (3358 / 1655))}
+      height={height}
+      style={{ height, width: "auto" }}
+    />
+  );
+}

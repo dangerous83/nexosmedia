@@ -9,6 +9,8 @@
 
   /* Surfaces — page → surface → elevated → control, each a visible step brighter */
   --bg: #090a0f;
+  --sidebar-bg: #0d0e15;
+  --header-bg: rgba(9, 10, 15, 0.82);
   --surface-1: #12131c;
   --surface-2: #191b28;
   --surface-3: #212436;
@@ -87,6 +89,40 @@
   --header-h: 64px;
   --content-max: 1440px;
   --touch: 44px;
+}
+
+/* NEXUFLOW keeps the same layout and media tools, but shifts the product surface
+   to near-black with a crisp white → cyan → blue identity. */
+:root[data-brand="nexuflow"] {
+  --bg: #02050a;
+  --sidebar-bg: #050910;
+  --header-bg: rgba(2, 5, 10, 0.86);
+  --surface-1: #080e18;
+  --surface-2: #0d1624;
+  --surface-3: #132033;
+  --surface-4: #1a2b42;
+  --border: rgba(139, 211, 255, 0.09);
+  --border-2: rgba(139, 211, 255, 0.16);
+  --border-3: rgba(139, 211, 255, 0.26);
+  --text: #ffffff;
+  --text-2: #b8c9da;
+  --text-3: #8297ab;
+  --text-inverse: #02101d;
+  --brand-blue: #147dff;
+  --brand-cyan: #52ddff;
+  --brand-violet: #2168ff;
+  --brand-magenta: #ffffff;
+  --brand-gradient: linear-gradient(135deg, #ffffff 0%, #79e7ff 28%, #249eff 62%, #1559ee 100%);
+  --brand-gradient-soft: linear-gradient(135deg, rgba(255, 255, 255, 0.13), rgba(36, 158, 255, 0.2));
+  --violet: #278fff;
+  --blue: #1677ff;
+  --cyan: #56ddff;
+  --accent: #7edfff;
+  --accent-strong: #218cff;
+  --accent-bg: rgba(33, 140, 255, 0.17);
+  --accent-border: rgba(100, 210, 255, 0.5);
+  --primary-gradient: linear-gradient(135deg, #63e2ff 0%, #218cff 52%, #1559ee 100%);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px #62d7ff;
 }
 
 @media (prefers-reduced-motion: reduce) {

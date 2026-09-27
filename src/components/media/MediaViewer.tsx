@@ -68,10 +68,19 @@ export function MediaViewer({ items, index, onIndexChange, actions, total }: Vie
               <div className="viewer-stage-wrap">
                 <header className="viewer-bar">
                   <Dialog.Close asChild>
-                    <button className="icon-btn viewer-close" aria-label="Close preview (Esc)"><X /></button>
+                    <button className="icon-btn viewer-close" aria-label="Close preview (Esc)" title="Close preview"><X /></button>
                   </Dialog.Close>
                   <Dialog.Title className="viewer-bar-title truncate">{media.name}</Dialog.Title>
                   <span className="viewer-count tabular" aria-live="polite">{index! + 1} / {total}</span>
+                  <a
+                    className="icon-btn viewer-mobile-download"
+                    href={mediaUrl.download(media)}
+                    download
+                    aria-label="Download original"
+                    title="Download original"
+                  >
+                    <Download aria-hidden />
+                  </a>
                 </header>
                 <Stage key={media.id} media={media} />
                 <button className="viewer-nav viewer-prev" onClick={prev} disabled={index === 0} aria-label="Previous (Left arrow)"><ChevronLeft /></button>
@@ -146,16 +155,21 @@ function Stage({ media }: { media: Media }) {
 
   if (failed) {
     return (
-      <div className="viewer-stage">
-        <div className="viewer-error" role="alert">
+      <div className="viewer-stage viewer-stage-fallback">
+        {media.hasThumb && (
+          // Keep a useful visual preview on devices that cannot decode the original video codec.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className="viewer-fallback-poster" src={mediaUrl.thumb(media)} alt={media.name} />
+        )}
+        <div className={`viewer-error${media.hasThumb ? " viewer-error-over-poster" : ""}`} role="alert">
           <AlertTriangle aria-hidden />
           <p className="viewer-error-title">{media.kind === "video" ? "This video can't be played in this browser" : "This image couldn't be loaded"}</p>
           <p className="muted">
             {media.kind === "video"
-              ? "Its codec may not be supported here (for example HEVC/H.265 in some browsers). The original file is intact — download it to play it in another app."
+              ? "Its codec is not supported by this device. The saved poster is shown when available, and the original can still be saved and opened in another app."
               : "The file may be unavailable in storage. Try again later, or download the original."}
           </p>
-          <a className="btn" href={mediaUrl.download(media)} download><Download aria-hidden /> Download original</a>
+          <a className="btn btn-primary" href={mediaUrl.download(media)} download><Download aria-hidden /> Save original</a>
         </div>
       </div>
     );
@@ -167,14 +181,15 @@ function Stage({ media }: { media: Media }) {
         <video
           ref={videoRef}
           className="viewer-video"
-          src={mediaUrl.file(media)}
           poster={media.hasThumb ? mediaUrl.thumb(media) : undefined}
           controls
           playsInline
           preload="metadata"
           onError={() => setFailed(true)}
           aria-label={`Video: ${media.name}`}
-        />
+        >
+          <source src={mediaUrl.file(media)} type={media.mime} />
+        </video>
       </div>
     );
   }

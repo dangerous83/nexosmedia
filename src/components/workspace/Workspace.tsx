@@ -8,7 +8,8 @@ import {
   AlertCircle, CheckSquare, ChevronRight, Download, Folder as FolderIcon, FolderInput, FolderPlus, Grid2x2, Grid3x3, LayoutGrid, List, Square,
   Menu as MenuIcon, Monitor, MoreHorizontal, Pencil, RotateCcw, RotateCw, Search, SearchX, Smartphone, Trash2, Upload, X,
 } from "lucide-react";
-import { BrandSymbol } from "@/components/Brand";
+import { BrandSymbol, NexuflowLogo } from "@/components/Brand";
+import { InterfaceLauncher } from "@/components/workspace/InterfaceLauncher";
 import { useOpenDrawer } from "@/components/shell/AppShell";
 import { useUploads, ACTIVE_STATUSES } from "@/components/providers/UploadProvider";
 import { useDialogs } from "@/components/providers/DialogsProvider";
@@ -41,6 +42,7 @@ const DENSITIES: { key: Density; label: string; icon: typeof Square }[] = [
 
 function titleFor(loc: Loc, folder: Folder | null | undefined) {
   switch (loc.kind) {
+    case "launcher": return "Choose an interface";
     case "all": return "All media";
     case "images": return "Images";
     case "videos": return "Videos";
@@ -80,6 +82,8 @@ export function Workspace({ limits }: { limits: Limits }) {
   const title = titleFor(loc, folder);
   const key = loc.kind === "folder" ? `folder-${loc.id}` : loc.kind;
 
+  if (loc.kind === "launcher") return <InterfaceLauncher />;
+
   return (
     <>
       <UtilityHeader loc={loc} title={title} folder={folder} q={q} setParam={setParam} summary={summary} />
@@ -115,6 +119,7 @@ function UtilityHeader({ loc, title, folder, q, setParam, summary }: {
   const toast = useToast();
   const router = useRouter();
   const { purge } = useMediaActions();
+  const [prefs] = usePrefs();
   const [draft, setDraft] = useState(q);
   const [lastQ, setLastQ] = useState(q);
   if (q !== lastQ) { setLastQ(q); setDraft(q); }
@@ -153,7 +158,9 @@ function UtilityHeader({ loc, title, folder, q, setParam, summary }: {
     <header className="uhead">
       <div className="uhead-row">
         <button className="icon-btn uhead-menu" onClick={openDrawer} aria-label="Open navigation"><MenuIcon /></button>
-        <Link href="/" className="uhead-logo" aria-label="NEXOSPHERE Media Space — All media"><BrandSymbol size={28} /></Link>
+        <Link href="/" className={`uhead-logo uhead-logo-${prefs.brand}`} aria-label={`${prefs.brand === "nexuflow" ? "NEXUFLOW" : "NEXOSPHERE"} Media Space — All media`}>
+          {prefs.brand === "nexuflow" ? <NexuflowLogo height={28} /> : <BrandSymbol size={28} />}
+        </Link>
         <nav className="crumbs" aria-label="Breadcrumb">
           <ol>
             <li className="crumb-root"><Link href="/">Media Space</Link></li>
@@ -457,7 +464,7 @@ function EmptyState({ loc, q, onClear }: { loc: Loc; q: string; onClear: () => v
       <span className="state-icon">{loc.kind === "trash" ? <Trash2 /> : loc.kind === "folder" ? <FolderIcon /> : <SearchX />}</span>
       <h2 className="state-title">{title}</h2>
       <p>{text}</p>
-      {loc.kind === "folder" && <Link className="btn" href="/">Go to All media</Link>}
+      {loc.kind === "folder" && <Link className="btn" href={hrefFor({ kind: "all" })}>Go to All media</Link>}
     </div>
   );
 }

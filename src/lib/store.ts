@@ -127,9 +127,10 @@ export function useMediaList(params: Record<string, string | undefined | null>, 
 
 export type ViewMode = "grid" | "list";
 export type Density = "compact" | "comfortable" | "large";
-export interface UiPrefs { view: ViewMode; density: Density; sidebarCollapsed: boolean }
+export type BrandMode = "nexosphere" | "nexuflow";
+export interface UiPrefs { view: ViewMode; density: Density; sidebarCollapsed: boolean; brand: BrandMode }
 const PREFS_KEY = "nexo.ui.v1";
-const DEFAULT_PREFS: UiPrefs = { view: "grid", density: "comfortable", sidebarCollapsed: false };
+const DEFAULT_PREFS: UiPrefs = { view: "grid", density: "comfortable", sidebarCollapsed: false, brand: "nexosphere" };
 let prefs: UiPrefs = DEFAULT_PREFS;
 let prefsLoaded = false;
 const prefListeners = new Set<() => void>();
