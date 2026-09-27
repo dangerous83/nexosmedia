@@ -7,6 +7,13 @@ export class ApiError extends Error {
 /** Header required by the server on every state-changing request (CSRF defence). */
 export const CSRF_HEADERS = { "X-Nexo-Request": "1" } as const;
 
+function activeWorkspace() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("nexo.ui.v1") ?? "{}") as { brand?: unknown };
+    return saved.brand === "nexuflow" ? "nexuflow" : "nexosphere";
+  } catch { return "nexosphere"; }
+}
+
 export function toUnlock() {
   window.location.href = "/unlock";
 }
@@ -21,6 +28,7 @@ export async function api<T = unknown>(url: string, init?: RequestInit & { json?
       headers: {
         ...(json !== undefined ? { "Content-Type": "application/json" } : {}),
         ...(rest.method && rest.method !== "GET" ? CSRF_HEADERS : {}),
+        "X-Nexo-Workspace": activeWorkspace(),
         ...rest.headers,
       },
       body: json !== undefined ? JSON.stringify(json) : rest.body,

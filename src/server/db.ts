@@ -117,6 +117,18 @@ const MIGRATIONS: string[] = [
   CREATE INDEX media_folder ON media(folder_id);
   CREATE INDEX media_trashed ON media(trashed_at);
   `,
+  // v4 — keep the two branded interfaces as genuinely separate media libraries. Existing
+  // files and folders belong to Nexosphere; Nexuflow intentionally starts empty.
+  `
+  ALTER TABLE media ADD COLUMN workspace TEXT NOT NULL DEFAULT 'nexosphere'
+    CHECK (workspace IN ('nexosphere','nexuflow'));
+  ALTER TABLE folders ADD COLUMN workspace TEXT NOT NULL DEFAULT 'nexosphere'
+    CHECK (workspace IN ('nexosphere','nexuflow'));
+  DROP INDEX folders_name;
+  CREATE UNIQUE INDEX folders_workspace_name ON folders(workspace, name COLLATE NOCASE);
+  CREATE INDEX media_workspace_created ON media(workspace, created_at DESC);
+  CREATE INDEX media_workspace_folder ON media(workspace, folder_id);
+  `,
 ];
 
 function open(): DatabaseSync {

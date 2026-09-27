@@ -6,10 +6,12 @@ import { fail, handle, HttpError, json, readJson, requireAccess } from "@/server
 import { sniff } from "@/server/sniff";
 import { storage } from "@/server/storage";
 import type { MediaKind } from "@/lib/types";
+import { workspaceValue } from "@/server/workspace";
 
 type Body = {
   id?: unknown; pathname?: unknown; name?: unknown; folderId?: unknown;
   width?: unknown; height?: unknown; duration?: unknown;
+  workspace?: unknown;
 };
 
 const finite = (v: unknown, max: number) => {
@@ -34,6 +36,7 @@ export const POST = handle(async (req) => {
   await requireAccess(req);
   if (!['vercel-blob', 's3'].includes(config.storageDriver)) return fail(404, "Direct uploads are not enabled.");
   const body = await readJson<Body>(req);
+  const workspace = workspaceValue(body.workspace);
   const id = typeof body.id === "string" && /^[0-9a-f-]{36}$/i.test(body.id) ? body.id : "";
   const pathname = typeof body.pathname === "string" ? body.pathname : "";
   if (!id || !pathname.startsWith(`media/${id}/original.`)) return fail(400, "Invalid uploaded file.");
@@ -90,8 +93,9 @@ export const POST = handle(async (req) => {
     id, kind, mime: detected.mime, ext: detected.ext,
     original_name: fileName(body.name, detected.ext), size: blobSize,
     width, height, duration, storage_key: pathname, thumb_key: thumbKey,
-    created_at: Date.now(), folder_id: wantedFolder && folderExists(wantedFolder) ? wantedFolder : null,
+    created_at: Date.now(), folder_id: wantedFolder && folderExists(workspace, wantedFolder) ? wantedFolder : null,
     trashed_at: null,
+    workspace,
   };
 
   // Persist the durable sidecar before updating this instance's disposable SQLite cache. If this

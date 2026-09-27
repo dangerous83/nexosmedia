@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { HttpError } from "./http";
 import { rowsForArchive } from "./media";
 import { uniqueNames } from "./zip";
-import { ARCHIVE_LIMITS } from "@/lib/types";
+import { ARCHIVE_LIMITS, type WorkspaceBrand } from "@/lib/types";
 
 /*
  * Bulk downloads, in two steps:
@@ -17,9 +17,9 @@ interface Prepared { entries: { id: string; key: string; name: string; size: num
 const g = globalThis as unknown as { __nexoArchives?: Map<string, Prepared> };
 const pending: Map<string, Prepared> = (g.__nexoArchives ??= new Map());
 
-export async function prepareArchive(ids: string[]) {
+export async function prepareArchive(workspace: WorkspaceBrand, ids: string[]) {
   for (const [t, p] of pending) if (p.expires < Date.now()) pending.delete(t);
-  const rows = rowsForArchive(ids);
+  const rows = rowsForArchive(workspace, ids);
   if (!rows.length) throw new HttpError(400, "None of the selected files are available to download.");
   if (rows.length > ARCHIVE_LIMITS.maxFiles)
     throw new HttpError(413, `You can download up to ${ARCHIVE_LIMITS.maxFiles} files at once. Select fewer files and try again.`);

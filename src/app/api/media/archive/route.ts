@@ -1,5 +1,6 @@
 import { fail, handle, json, readJson, requireAccess } from "@/server/http";
 import { prepareArchive } from "@/server/archive";
+import { workspaceFrom } from "@/server/workspace";
 
 export const runtime = "nodejs";
 
@@ -9,5 +10,5 @@ export const POST = handle(async (req) => {
   const { ids } = await readJson<{ ids?: unknown }>(req);
   const list = Array.isArray(ids) ? ids.filter((i): i is string => typeof i === "string") : [];
   if (!list.length) return fail(400, "Select at least one file.");
-  return json(await prepareArchive(list));
+  return json(await prepareArchive(workspaceFrom(req), list));
 });

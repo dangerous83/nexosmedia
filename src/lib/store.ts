@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { api } from "./api";
-import type { Media, MediaPage } from "./types";
+import type { Media, MediaPage, WorkspaceBrand } from "./types";
 
 /*
  * Client data layer.
@@ -127,7 +127,7 @@ export function useMediaList(params: Record<string, string | undefined | null>, 
 
 export type ViewMode = "grid" | "list";
 export type Density = "compact" | "comfortable" | "large";
-export type BrandMode = "nexosphere" | "nexuflow";
+export type BrandMode = WorkspaceBrand;
 export interface UiPrefs { view: ViewMode; density: Density; sidebarCollapsed: boolean; brand: BrandMode }
 const PREFS_KEY = "nexo.ui.v1";
 const DEFAULT_PREFS: UiPrefs = { view: "grid", density: "comfortable", sidebarCollapsed: false, brand: "nexosphere" };

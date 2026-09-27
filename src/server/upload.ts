@@ -13,6 +13,7 @@ import { sniff } from "./sniff";
 import { getMedia, getRow, insertMedia, clean, folderExists } from "./media";
 import { UPLOAD_RULES } from "@/lib/types";
 import type { Media } from "@/lib/types";
+import { workspaceFrom } from "./workspace";
 
 // libvips keeps file handles open when caching; on Windows that blocks moving/deleting temp files.
 sharp.cache(false);
@@ -30,6 +31,7 @@ const mbLabel = (bytes: number) => `${Math.round(bytes / 1024 / 1024)} MB`;
  * sent after the file and its metadata are both saved.
  */
 export async function receiveUpload(req: Request): Promise<{ media: Media; folderMissing: boolean }> {
+  const workspace = workspaceFrom(req);
   if (!req.body) throw new HttpError(400, "No file was received.");
   const fileName = clean(safeDecode(req.headers.get("x-file-name") ?? "upload"), 255) || "upload";
   const declared = req.headers.get("content-type") ?? "";
@@ -111,10 +113,10 @@ export async function receiveUpload(req: Request): Promise<{ media: Media; folde
     }
 
     await storage().putFile(key, temp, type.mime);
-    const folderId = wantedFolder && folderExists(wantedFolder) ? wantedFolder : null;
+    const folderId = wantedFolder && folderExists(workspace, wantedFolder) ? wantedFolder : null;
     insertMedia({
       id, kind: type.kind, mime: type.mime, ext: type.ext, original_name: fileName, size: received,
-      width, height, duration, storage_key: key, thumb_key: thumbKey, created_at: Date.now(), folder_id: folderId,
+      width, height, duration, storage_key: key, thumb_key: thumbKey, created_at: Date.now(), folder_id: folderId, workspace,
     });
     return { media: getMedia(id), folderMissing: !!wantedFolder && !folderId };
   } finally {

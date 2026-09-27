@@ -6,7 +6,7 @@ import { upload } from "@vercel/blob/client";
 import { invalidateMedia } from "@/lib/store";
 import { CSRF_HEADERS } from "@/lib/api";
 import { formatBytes } from "@/lib/format";
-import { ACCEPT_ATTR, UPLOAD_RULES, type Media, type MediaKind } from "@/lib/types";
+import { ACCEPT_ATTR, UPLOAD_RULES, type Media, type MediaKind, type WorkspaceBrand } from "@/lib/types";
 
 /**
  * preparing  → reading the file locally (video metadata / poster frame)
@@ -18,7 +18,7 @@ import { ACCEPT_ATTR, UPLOAD_RULES, type Media, type MediaKind } from "@/lib/typ
 export type UploadStatus = "preparing" | "queued" | "uploading" | "processing" | "finalizing" | "done" | "failed" | "canceled" | "invalid";
 export const ACTIVE_STATUSES: UploadStatus[] = ["preparing", "queued", "uploading", "processing", "finalizing"];
 
-export interface UploadTarget { folderId: string | null; label: string }
+export interface UploadTarget { folderId: string | null; label: string; workspace: WorkspaceBrand }
 
 export interface UploadItem {
   id: string;
@@ -129,11 +129,11 @@ export function UploadProvider({ limits, children }: { limits: Limits; children:
   const [items, setItems] = useState<UploadItem[]>([]);
   const [trayOpen, setTrayOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const [target, setTargetState] = useState<UploadTarget>({ folderId: null, label: "All media" });
+  const [target, setTargetState] = useState<UploadTarget>({ folderId: null, label: "All media", workspace: "nexosphere" });
   const targetRef = useRef(target);
   targetRef.current = target;
   const setTarget = useCallback((t: UploadTarget) => {
-    setTargetState((cur) => (cur.folderId === t.folderId && cur.label === t.label ? cur : t));
+    setTargetState((cur) => (cur.folderId === t.folderId && cur.label === t.label && cur.workspace === t.workspace ? cur : t));
   }, []);
   const xhrs = useRef(new Map<string, XMLHttpRequest>());
   const aborters = useRef(new Map<string, AbortController>());
@@ -248,7 +248,7 @@ export function UploadProvider({ limits, children }: { limits: Limits; children:
             headers: { "Content-Type": "application/json", ...CSRF_HEADERS },
             body: JSON.stringify({
               id: item.id, pathname: storedPath, name: item.file.name,
-              folderId: item.target.folderId, ...item.meta,
+              folderId: item.target.folderId, workspace: item.target.workspace, ...item.meta,
             }),
           });
           const body = await res.json().catch(() => ({})) as { media?: Media; folderMissing?: boolean; error?: string };
@@ -287,6 +287,7 @@ export function UploadProvider({ limits, children }: { limits: Limits; children:
     xhr.setRequestHeader("Content-Type", item.file.type || "application/octet-stream");
     xhr.setRequestHeader("X-File-Name", encodeURIComponent(item.file.name));
     xhr.setRequestHeader("X-Nexo-Request", CSRF_HEADERS["X-Nexo-Request"]);
+    xhr.setRequestHeader("X-Nexo-Workspace", item.target.workspace);
     if (item.target.folderId) xhr.setRequestHeader("X-Folder-Id", item.target.folderId);
     if (item.meta?.width) xhr.setRequestHeader("X-Media-Width", String(item.meta.width));
     if (item.meta?.height) xhr.setRequestHeader("X-Media-Height", String(item.meta.height));

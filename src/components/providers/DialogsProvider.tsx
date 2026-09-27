@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useMemo, useState } from "react
 import * as Dialog from "@radix-ui/react-dialog";
 import { Check, Folder as FolderIcon, FolderPlus, Inbox, X } from "lucide-react";
 import { api } from "@/lib/api";
-import { invalidateMedia, useQuery } from "@/lib/store";
+import { invalidateMedia, usePrefs, useQuery } from "@/lib/store";
 import { useReturnFocus } from "@/lib/focus";
 import { plural } from "@/lib/format";
 import { useToast } from "./ToastProvider";
@@ -130,7 +130,8 @@ function FolderDialog({ state, onClose }: { state: FolderDlg | null; onClose: ()
 
 function MoveDialog({ state, onClose, onNewFolder }: { state: MoveDlg | null; onClose: () => void; onNewFolder: (ids: string[]) => void }) {
   const toast = useToast();
-  const { data } = useQuery<{ folders: Folder[] }>(state ? "/api/folders" : null);
+  const [prefs] = usePrefs();
+  const { data } = useQuery<{ folders: Folder[] }>(state ? `/api/folders?workspace=${prefs.brand}` : null);
   const [busy, setBusy] = useState<string | null>(null);
   const folders = data?.folders ?? [];
 

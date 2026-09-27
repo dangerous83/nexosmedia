@@ -3,13 +3,14 @@ import { randomUUID } from "node:crypto";
 import { db, tx } from "./db";
 import { storage } from "./storage";
 import { HttpError } from "./http";
-import type { Folder, Media, MediaKind, MediaPage, SortKey, Summary } from "@/lib/types";
+import type { Folder, Media, MediaKind, MediaPage, SortKey, Summary, WorkspaceBrand } from "@/lib/types";
 
 export interface MediaRow {
   id: string; kind: MediaKind; mime: string; ext: string; original_name: string; size: number;
   width: number | null; height: number | null; duration: number | null;
   storage_key: string; thumb_key: string | null; created_at: number;
   folder_id: string | null; trashed_at: number | null;
+  workspace: WorkspaceBrand;
 }
 
 export function toMedia(r: MediaRow): Media {
@@ -36,6 +37,7 @@ const ORDER: Record<SortKey, string> = {
 };
 
 export interface Scope {
+  workspace: WorkspaceBrand;
   type?: MediaKind | null;
   orientation?: "vertical" | "horizontal" | null;
   /** A folder id, or "none" for unfiled items. Omit for the whole workspace. */
@@ -44,8 +46,8 @@ export interface Scope {
 }
 
 function scopeSql(o: Scope & { q?: string | null }) {
-  const where = [o.trash ? "trashed_at IS NOT NULL" : "trashed_at IS NULL"];
-  const args: (string | number)[] = [];
+  const where = ["workspace = ?", o.trash ? "trashed_at IS NOT NULL" : "trashed_at IS NULL"];
+  const args: (string | number)[] = [o.workspace];
   if (o.type) { where.push("kind = ?"); args.push(o.type); }
   if (o.type === "video" && o.orientation === "vertical") {
     where.push("width IS NOT NULL AND height IS NOT NULL AND height > width");
@@ -77,37 +79,38 @@ export function listMedia(o: Scope & { q?: string | null; sort?: SortKey | null;
   return { items: rows.map(toMedia), total, nextCursor: offset + rows.length < total ? offset + rows.length : null };
 }
 
-export function summary(): Summary {
+export function summary(workspace: WorkspaceBrand): Summary {
   const r = db().prepare(
     `SELECT COALESCE(SUM(trashed_at IS NULL), 0) AS a,
             COALESCE(SUM(trashed_at IS NULL AND kind = 'image'), 0) AS i,
             COALESCE(SUM(trashed_at IS NULL AND kind = 'video'), 0) AS v,
             COALESCE(SUM(trashed_at IS NULL AND folder_id IS NULL), 0) AS u,
             COALESCE(SUM(trashed_at IS NOT NULL), 0) AS t
-     FROM media`,
-  ).get() as Record<string, number>;
+     FROM media WHERE workspace = ?`,
+  ).get(workspace) as Record<string, number>;
   return { all: Number(r.a), images: Number(r.i), videos: Number(r.v), unfiled: Number(r.u), trash: Number(r.t) };
 }
 
 export function insertMedia(r: Omit<MediaRow, "trashed_at">) {
   db().prepare(
-    `INSERT INTO media (id, kind, mime, ext, original_name, size, width, height, duration, storage_key, thumb_key, created_at, folder_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(r.id, r.kind, r.mime, r.ext, r.original_name, r.size, r.width, r.height, r.duration, r.storage_key, r.thumb_key, r.created_at, r.folder_id);
+    `INSERT INTO media (id, kind, mime, ext, original_name, size, width, height, duration, storage_key, thumb_key, created_at, folder_id, workspace)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(r.id, r.kind, r.mime, r.ext, r.original_name, r.size, r.width, r.height, r.duration, r.storage_key, r.thumb_key, r.created_at, r.folder_id, r.workspace);
 }
 
 /** Restores durable object-store metadata into a fresh serverless SQLite cache. */
-export function upsertMedia(r: MediaRow) {
+export function upsertMedia(r: MediaRow | (Omit<MediaRow, "workspace"> & { workspace?: WorkspaceBrand })) {
+  const workspace: WorkspaceBrand = r.workspace === "nexuflow" ? "nexuflow" : "nexosphere";
   db().prepare(
-    `INSERT INTO media (id, kind, mime, ext, original_name, size, width, height, duration, storage_key, thumb_key, created_at, folder_id, trashed_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO media (id, kind, mime, ext, original_name, size, width, height, duration, storage_key, thumb_key, created_at, folder_id, trashed_at, workspace)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        kind=excluded.kind, mime=excluded.mime, ext=excluded.ext, original_name=excluded.original_name,
        size=excluded.size, width=excluded.width, height=excluded.height, duration=excluded.duration,
        storage_key=excluded.storage_key, thumb_key=excluded.thumb_key, created_at=excluded.created_at,
-       folder_id=excluded.folder_id, trashed_at=excluded.trashed_at`,
+       folder_id=excluded.folder_id, trashed_at=excluded.trashed_at, workspace=excluded.workspace`,
   ).run(r.id, r.kind, r.mime, r.ext, r.original_name, r.size, r.width, r.height, r.duration,
-    r.storage_key, r.thumb_key, r.created_at, r.folder_id, r.trashed_at);
+    r.storage_key, r.thumb_key, r.created_at, r.folder_id, r.trashed_at, workspace);
 }
 
 export function setThumbKey(id: string, key: string) {
@@ -118,8 +121,9 @@ export function setThumbKey(id: string, key: string) {
  * Renames the display filename. The extension always matches the stored format, so a rename can
  * never make a file look like a different type; the storage key is untouched.
  */
-export function renameMedia(id: string, input: unknown) {
+export function renameMedia(workspace: WorkspaceBrand, id: string, input: unknown) {
   const row = getRow(id);
+  if (row.workspace !== workspace) throw new HttpError(404, "This file doesn't exist or was deleted.");
   let base = clean(input, 200).replace(/[\\/:*?"<>|]+/g, "-");
   const exts = row.kind === "image" ? (row.ext === "jpg" ? ["jpg", "jpeg"] : [row.ext]) : (row.ext === "mp4" ? ["mp4", "m4v"] : [row.ext]);
   const current = /\.([a-z0-9]{2,5})$/i.exec(base)?.[1]?.toLowerCase();
@@ -134,35 +138,35 @@ export function renameMedia(id: string, input: unknown) {
 
 const ids = (list: string[]) => [...new Set(list)].slice(0, 1000);
 
-export function moveMedia(list: string[], folderId: string | null) {
-  if (folderId) getFolderRow(folderId);
-  const stmt = db().prepare("UPDATE media SET folder_id = ? WHERE id = ? AND trashed_at IS NULL");
+export function moveMedia(workspace: WorkspaceBrand, list: string[], folderId: string | null) {
+  if (folderId) getFolderRow(workspace, folderId);
+  const stmt = db().prepare("UPDATE media SET folder_id = ? WHERE id = ? AND workspace = ? AND trashed_at IS NULL");
   let moved = 0;
-  tx(() => { for (const id of ids(list)) moved += Number(stmt.run(folderId, id).changes); });
+  tx(() => { for (const id of ids(list)) moved += Number(stmt.run(folderId, id, workspace).changes); });
   return moved;
 }
 
-export function trashMedia(list: string[]) {
-  const stmt = db().prepare("UPDATE media SET trashed_at = ? WHERE id = ? AND trashed_at IS NULL");
+export function trashMedia(workspace: WorkspaceBrand, list: string[]) {
+  const stmt = db().prepare("UPDATE media SET trashed_at = ? WHERE id = ? AND workspace = ? AND trashed_at IS NULL");
   const now = Date.now();
   const done: string[] = [];
-  tx(() => { for (const id of ids(list)) if (Number(stmt.run(now, id).changes)) done.push(id); });
+  tx(() => { for (const id of ids(list)) if (Number(stmt.run(now, id, workspace).changes)) done.push(id); });
   return done;
 }
 
 /** Restores to the original folder; folders deleted meanwhile have already un-filed their items. */
-export function restoreMedia(list: string[]) {
-  const stmt = db().prepare("UPDATE media SET trashed_at = NULL WHERE id = ? AND trashed_at IS NOT NULL");
+export function restoreMedia(workspace: WorkspaceBrand, list: string[]) {
+  const stmt = db().prepare("UPDATE media SET trashed_at = NULL WHERE id = ? AND workspace = ? AND trashed_at IS NOT NULL");
   const done: string[] = [];
-  tx(() => { for (const id of ids(list)) if (Number(stmt.run(id).changes)) done.push(id); });
+  tx(() => { for (const id of ids(list)) if (Number(stmt.run(id, workspace).changes)) done.push(id); });
   return done;
 }
 
 /** Permanently deletes trashed items: record first, then the original and its thumbnail. */
-export async function purgeMedia(list: string[] | "all") {
+export async function purgeMedia(workspace: WorkspaceBrand, list: string[] | "all") {
   const rows = (list === "all"
-    ? db().prepare("SELECT * FROM media WHERE trashed_at IS NOT NULL").all()
-    : ids(list).map((id) => db().prepare("SELECT * FROM media WHERE id = ? AND trashed_at IS NOT NULL").get(id)).filter(Boolean)) as unknown as MediaRow[];
+    ? db().prepare("SELECT * FROM media WHERE workspace = ? AND trashed_at IS NOT NULL").all(workspace)
+    : ids(list).map((id) => db().prepare("SELECT * FROM media WHERE id = ? AND workspace = ? AND trashed_at IS NOT NULL").get(id, workspace)).filter(Boolean)) as unknown as MediaRow[];
   tx(() => { const del = db().prepare("DELETE FROM media WHERE id = ?"); for (const r of rows) del.run(r.id); });
   // A failed file delete leaves an orphaned file, never a record pointing at a missing file.
   for (const r of rows) {
@@ -173,30 +177,30 @@ export async function purgeMedia(list: string[] | "all") {
 }
 
 /** Rows for a bulk download (live, non-trashed items only, in the requested order). */
-export function rowsForArchive(list: string[]) {
-  const sel = db().prepare("SELECT * FROM media WHERE id = ? AND trashed_at IS NULL");
-  return ids(list).map((id) => sel.get(id) as MediaRow | undefined).filter((r): r is MediaRow => !!r);
+export function rowsForArchive(workspace: WorkspaceBrand, list: string[]) {
+  const sel = db().prepare("SELECT * FROM media WHERE id = ? AND workspace = ? AND trashed_at IS NULL");
+  return ids(list).map((id) => sel.get(id, workspace) as MediaRow | undefined).filter((r): r is MediaRow => !!r);
 }
 
 // ——— Folders ———
 
-interface FolderRow { id: string; name: string; created_at: number; updated_at: number }
+interface FolderRow { id: string; name: string; created_at: number; updated_at: number; workspace: WorkspaceBrand }
 
-export function getFolderRow(id: string): FolderRow {
-  const row = db().prepare("SELECT * FROM folders WHERE id = ?").get(id) as FolderRow | undefined;
+export function getFolderRow(workspace: WorkspaceBrand, id: string): FolderRow {
+  const row = db().prepare("SELECT * FROM folders WHERE id = ? AND workspace = ?").get(id, workspace) as FolderRow | undefined;
   if (!row) throw new HttpError(404, "This folder doesn't exist or was deleted.");
   return row;
 }
 
-export function folderExists(id: string) {
-  return !!db().prepare("SELECT 1 FROM folders WHERE id = ?").get(id);
+export function folderExists(workspace: WorkspaceBrand, id: string) {
+  return !!db().prepare("SELECT 1 FROM folders WHERE id = ? AND workspace = ?").get(id, workspace);
 }
 
-export function listFolders(): Folder[] {
+export function listFolders(workspace: WorkspaceBrand): Folder[] {
   const rows = db().prepare(
     `SELECT f.*, (SELECT COUNT(*) FROM media m WHERE m.folder_id = f.id AND m.trashed_at IS NULL) AS n
-     FROM folders f ORDER BY f.name COLLATE NOCASE`,
-  ).all() as unknown as (FolderRow & { n: number })[];
+     FROM folders f WHERE f.workspace = ? ORDER BY f.name COLLATE NOCASE`,
+  ).all(workspace) as unknown as (FolderRow & { n: number })[];
   const cover = db().prepare(
     `SELECT id, kind, thumb_key, width, height FROM media
      WHERE folder_id = ? AND trashed_at IS NULL AND thumb_key IS NOT NULL ORDER BY created_at DESC LIMIT 1`,
@@ -210,36 +214,36 @@ export function listFolders(): Folder[] {
   });
 }
 
-function folderName(input: unknown, exceptId?: string) {
+function folderName(workspace: WorkspaceBrand, input: unknown, exceptId?: string) {
   const name = clean(input, 60);
   if (!name) throw new HttpError(400, "Give the folder a name.");
-  const clash = db().prepare("SELECT id FROM folders WHERE name = ? COLLATE NOCASE").get(name) as { id: string } | undefined;
+  const clash = db().prepare("SELECT id FROM folders WHERE workspace = ? AND name = ? COLLATE NOCASE").get(workspace, name) as { id: string } | undefined;
   if (clash && clash.id !== exceptId) throw new HttpError(409, `A folder called “${name}” already exists.`);
   return name;
 }
 
-export function createFolder(input: unknown) {
-  const name = folderName(input);
+export function createFolder(workspace: WorkspaceBrand, input: unknown) {
+  const name = folderName(workspace, input);
   const id = randomUUID();
   const now = Date.now();
-  db().prepare("INSERT INTO folders (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)").run(id, name, now, now);
-  return listFolders().find((f) => f.id === id)!;
+  db().prepare("INSERT INTO folders (id, name, created_at, updated_at, workspace) VALUES (?, ?, ?, ?, ?)").run(id, name, now, now, workspace);
+  return listFolders(workspace).find((f) => f.id === id)!;
 }
 
-export function renameFolder(id: string, input: unknown) {
-  getFolderRow(id);
-  const name = folderName(input, id);
-  db().prepare("UPDATE folders SET name = ?, updated_at = ? WHERE id = ?").run(name, Date.now(), id);
-  return listFolders().find((f) => f.id === id)!;
+export function renameFolder(workspace: WorkspaceBrand, id: string, input: unknown) {
+  getFolderRow(workspace, id);
+  const name = folderName(workspace, input, id);
+  db().prepare("UPDATE folders SET name = ?, updated_at = ? WHERE id = ? AND workspace = ?").run(name, Date.now(), id, workspace);
+  return listFolders(workspace).find((f) => f.id === id)!;
 }
 
 /** Deletes a folder only. Its media (including trashed items) move back to the unfiled library. */
-export function deleteFolder(id: string) {
-  getFolderRow(id);
-  const moved = (db().prepare("SELECT id FROM media WHERE folder_id = ?").all(id) as { id: string }[]).map((r) => r.id);
+export function deleteFolder(workspace: WorkspaceBrand, id: string) {
+  getFolderRow(workspace, id);
+  const moved = (db().prepare("SELECT id FROM media WHERE folder_id = ? AND workspace = ?").all(id, workspace) as { id: string }[]).map((r) => r.id);
   tx(() => {
-    db().prepare("UPDATE media SET folder_id = NULL WHERE folder_id = ?").run(id);
-    db().prepare("DELETE FROM folders WHERE id = ?").run(id);
+    db().prepare("UPDATE media SET folder_id = NULL WHERE folder_id = ? AND workspace = ?").run(id, workspace);
+    db().prepare("DELETE FROM folders WHERE id = ? AND workspace = ?").run(id, workspace);
   });
   return moved;
 }

@@ -43,7 +43,7 @@ await page.getByRole("button", { name: "Unlock workspace" }).click();
 await page.waitForURL(`${BASE}/`);
 
 console.log("Interface launcher");
-ok(await page.getByRole("heading", { name: "Choose your interface" }).isVisible(), "workspace opens on the interface launcher");
+ok(await page.getByRole("heading", { name: "Choose your workspace" }).isVisible(), "workspace opens on the interface launcher");
 ok((await page.locator(".app-side").count()) === 1 && !(await page.locator(".app-side").isVisible()), "launcher does not show the media sidebar");
 ok(await page.getByRole("button", { name: /Enter Nexosphere/ }).isVisible() && await page.getByRole("button", { name: /Enter Nexuflow/ }).isVisible(), "launcher offers both interfaces");
 await page.getByRole("button", { name: /Enter Nexosphere/ }).click();
@@ -79,6 +79,10 @@ ok(await waitFor(async () => (await summary()).all === 4, 30000), "4 valid files
 ok(await waitFor(async () => (await cards().count()) === 4), "gallery updates without reload");
 ok(await waitFor(async () => (await page.locator(".uq-row.uq-danger").count()) === 1), "unsupported file stays visible in the tray");
 await page.getByRole("button", { name: /Remove not-really-an-image/ }).click();
+await side().getByRole("tab", { name: "Nexuflow" }).click();
+ok(await waitFor(async () => (await apiJson("/api/summary?workspace=nexuflow")).all === 0 && (await cards().count()) === 0), "Nexuflow stays empty when files were uploaded to Nexosphere");
+await side().getByRole("tab", { name: "Nexosphere" }).click();
+ok(await waitFor(async () => (await cards().count()) === 4), "Nexosphere media returns after switching back");
 
 console.log("Progress, cancel, retry");
 const cdp = await ctx.newCDPSession(page);

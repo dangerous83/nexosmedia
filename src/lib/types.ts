@@ -1,6 +1,7 @@
 // Shapes shared by the API and the client.
 
 export type MediaKind = "image" | "video";
+export type WorkspaceBrand = "nexosphere" | "nexuflow";
 
 export interface Media {
   id: string;

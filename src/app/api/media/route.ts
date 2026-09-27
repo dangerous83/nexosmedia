@@ -2,6 +2,7 @@ import { handle, json, requireAccess } from "@/server/http";
 import { listMedia } from "@/server/media";
 import { syncMediaMetadata } from "@/server/blob-meta";
 import type { SortKey } from "@/lib/types";
+import { workspaceFrom } from "@/server/workspace";
 
 const SORTS: SortKey[] = ["newest", "oldest", "name", "size"];
 
@@ -18,6 +19,7 @@ export const GET = handle(async (req) => {
   const sort = p.get("sort") as SortKey | null;
   return json(
     listMedia({
+      workspace: workspaceFrom(req),
       type: type === "image" || type === "video" ? type : null,
       orientation: type === "video" && (orientation === "vertical" || orientation === "horizontal") ? orientation : null,
       folder: p.get("folder"),

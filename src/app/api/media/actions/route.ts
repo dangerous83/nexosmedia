@@ -1,6 +1,7 @@
 import { fail, handle, json, readJson, requireAccess } from "@/server/http";
 import { moveMedia, purgeMedia, restoreMedia, trashMedia } from "@/server/media";
 import { deleteMediaMetadata, persistMediaMany } from "@/server/blob-meta";
+import { workspaceFrom } from "@/server/workspace";
 
 type Body = { action?: string; ids?: unknown; folderId?: unknown; all?: unknown };
 
@@ -8,9 +9,10 @@ type Body = { action?: string; ids?: unknown; folderId?: unknown; all?: unknown 
 export const POST = handle(async (req) => {
   await requireAccess(req);
   const { action, ids, folderId, all } = await readJson<Body>(req);
+  const workspace = workspaceFrom(req);
   const list = Array.isArray(ids) ? ids.filter((i): i is string => typeof i === "string") : [];
   if (action === "purge" && all === true) {
-    const purged = await purgeMedia("all");
+    const purged = await purgeMedia(workspace, "all");
     await deleteMediaMetadata(purged);
     return json({ ids: purged });
   }
@@ -19,22 +21,22 @@ export const POST = handle(async (req) => {
   switch (action) {
     case "move": {
       if (folderId !== null && typeof folderId !== "string") return fail(400, "Choose a folder.");
-      const moved = moveMedia(list, folderId);
+      const moved = moveMedia(workspace, list, folderId);
       await persistMediaMany(list);
       return json({ moved });
     }
     case "trash": {
-      const done = trashMedia(list);
+      const done = trashMedia(workspace, list);
       await persistMediaMany(done);
       return json({ ids: done });
     }
     case "restore": {
-      const done = restoreMedia(list);
+      const done = restoreMedia(workspace, list);
       await persistMediaMany(done);
       return json({ ids: done });
     }
     case "purge": {
-      const purged = await purgeMedia(list);
+      const purged = await purgeMedia(workspace, list);
       await deleteMediaMetadata(purged);
       return json({ ids: purged });
     }

@@ -62,16 +62,17 @@ export function Workspace({ limits }: { limits: Limits }) {
   const sortParam = params.get("sort");
   const sort: SortKey = SORTS.some((s) => s.key === sortParam) ? (sortParam as SortKey) : "newest";
   const orientation = params.get("orientation") === "horizontal" ? "horizontal" : "vertical";
-  const { data: fdata } = useQuery<{ folders: Folder[] }>("/api/folders");
-  const { data: summary } = useQuery<Summary>("/api/summary");
+  const [prefs] = usePrefs();
+  const { data: fdata } = useQuery<{ folders: Folder[] }>(`/api/folders?workspace=${prefs.brand}`);
+  const { data: summary } = useQuery<Summary>(`/api/summary?workspace=${prefs.brand}`);
   const folders = useMemo(() => fdata?.folders ?? [], [fdata]);
   const folder = loc.kind === "folder" ? folders.find((f) => f.id === loc.id) ?? null : null;
   const { setTarget } = useUploads();
 
   // Uploads go into the open folder; everywhere else they land unfiled in All media.
   useEffect(() => {
-    setTarget(folder ? { folderId: folder.id, label: folder.name } : { folderId: null, label: "All media" });
-  }, [folder, setTarget]);
+    setTarget(folder ? { folderId: folder.id, label: folder.name, workspace: prefs.brand } : { folderId: null, label: "All media", workspace: prefs.brand });
+  }, [folder, prefs.brand, setTarget]);
 
   const setParam = useCallback((patch: Record<string, string | null>) => {
     const next = new URLSearchParams(params.toString());
@@ -213,13 +214,14 @@ function MediaView({ loc, title, folder, folders, q, sort, orientation, setParam
   setParam: (p: Record<string, string | null>) => void; summary?: Summary; limits: Limits;
 }) {
   const inTrash = loc.kind === "trash";
+  const [prefs, setPrefs] = usePrefs();
   const list = useMediaList({
+    workspace: prefs.brand,
     ...mediaScope(loc),
     orientation: loc.kind === "videos" ? orientation : null,
     q,
     sort: sort === "newest" ? null : sort,
   });
-  const [prefs, setPrefs] = usePrefs();
   const { previewPending } = useUploads();
   const dialogs = useDialogs();
   const { trash, restore, purge, download } = useMediaActions(list.removeLocal);

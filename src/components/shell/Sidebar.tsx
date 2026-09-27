@@ -23,8 +23,8 @@ export function Sidebar({ rail = false, onNavigate, onToggleRail, canToggle }: P
   const [prefs, setPrefs] = usePrefs();
   const { openPicker, activeCount, items } = useUploads();
   const { newFolder } = useDialogs();
-  const { data: summary } = useQuery<Summary>("/api/summary");
-  const { data: fdata } = useQuery<{ folders: Folder[] }>("/api/folders");
+  const { data: summary } = useQuery<Summary>(`/api/summary?workspace=${prefs.brand}`);
+  const { data: fdata } = useQuery<{ folders: Folder[] }>(`/api/folders?workspace=${prefs.brand}`);
   const [foldersOpen, setFoldersOpen] = useState(true);
   const lock = useLock();
   const folders = fdata?.folders ?? [];
