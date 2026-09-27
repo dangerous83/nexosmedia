@@ -36,6 +36,9 @@ export const config = {
    */
   passphraseHash: (process.env.NEXO_PASSPHRASE_HASH || "").trim(),
   sessionHours: num(process.env.NEXO_SESSION_HOURS, 12),
+  // Separate safeguard for irreversible deletion. Override in production with
+  // NEXO_DELETE_PASSPHRASE when the shared deletion password changes.
+  deletePassphrase: (process.env.NEXO_DELETE_PASSPHRASE || "sliferslacker").trim(),
   cookieSecure:
     process.env.COOKIE_SECURE != null
       ? process.env.COOKIE_SECURE === "true"

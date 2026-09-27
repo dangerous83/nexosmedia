@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  ChevronDown, Film, Folder as FolderIcon, FolderPlus, Images, LayoutGrid, Lock, Orbit, PanelLeftClose, PanelLeftOpen,
+  ChevronDown, Film, Folder as FolderIcon, FolderPlus, House, Images, LayoutGrid, Lock, Orbit, PanelLeftClose, PanelLeftOpen,
   ShieldCheck, Trash2, Upload, UploadCloud,
 } from "lucide-react";
 import { BrandSymbol, NexuflowLogo, Wordmark } from "@/components/Brand";
@@ -33,7 +33,7 @@ export function Sidebar({ rail = false, onNavigate, onToggleRail, canToggle }: P
 
   const switchBrand = (next: BrandMode) => {
     setPrefs({ brand: next });
-    router.push("/?view=all");
+    router.push("/?view=dashboard");
     onNavigate?.();
   };
 
@@ -58,7 +58,7 @@ export function Sidebar({ rail = false, onNavigate, onToggleRail, canToggle }: P
   return (
     <div className={`side${rail ? " is-rail" : ""}`}>
       <div className="side-top">
-        <Link href="/" className={`side-brand side-brand-${brand}`} onClick={onNavigate} aria-label={`${brand === "nexuflow" ? "NEXUFLOW" : "NEXOSPHERE"} Media Space home`}>
+        <Link href="/?view=dashboard" className={`side-brand side-brand-${brand}`} onClick={onNavigate} aria-label={`${brand === "nexuflow" ? "NEXUFLOW" : "NEXOSPHERE"} Media Space home`}>
           {brand === "nexuflow" ? <NexuflowLogo height={34} /> : <BrandSymbol size={30} priority />}
           {brand === "nexosphere" && (
             <span className="side-brand-text">
@@ -97,6 +97,9 @@ export function Sidebar({ rail = false, onNavigate, onToggleRail, canToggle }: P
       </div>
 
       <nav className="side-nav" aria-label="Workspace">
+        <ul className="nav-dashboard">
+          <li>{link({ kind: "dashboard" }, "Home", House)}</li>
+        </ul>
         <p className="nav-section">Library</p>
         <ul>
           <li>{link({ kind: "images" }, "Images", Images, summary?.images)}</li>

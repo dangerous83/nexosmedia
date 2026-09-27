@@ -10,7 +10,7 @@ export function InterfaceLauncher() {
 
   const enter = (brand: BrandMode) => {
     setPrefs({ brand });
-    router.push("/?view=all");
+    router.push("/?view=dashboard");
   };
 
   return (

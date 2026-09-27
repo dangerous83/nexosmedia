@@ -2,6 +2,7 @@ import { fail, handle, json, readJson, requireAccess } from "@/server/http";
 import { getMedia, getRow, purgeMedia, renameMedia } from "@/server/media";
 import { deleteMediaMetadata, persistMedia } from "@/server/blob-meta";
 import { workspaceFrom } from "@/server/workspace";
+import { config } from "@/server/config";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -22,6 +23,7 @@ export const PATCH = handle<Ctx>(async (req, { params }) => {
 /** Permanent delete. Only items already in Trash can be deleted permanently. */
 export const DELETE = handle<Ctx>(async (req, { params }) => {
   await requireAccess(req);
+  if (req.headers.get("x-nexo-delete-password") !== config.deletePassphrase) return fail(403, "The deletion password is incorrect.");
   const { id } = await params;
   const workspace = workspaceFrom(req);
   const row = getRow(id);

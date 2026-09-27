@@ -11,23 +11,28 @@ interface ConfirmOptions {
   confirmLabel?: string;
   cancelLabel?: string;
   tone?: "danger" | "default";
+  requirePassword?: boolean;
+  passwordLabel?: string;
 }
 
-const Ctx = createContext<(o: ConfirmOptions) => Promise<boolean>>(async () => false);
+interface ConfirmResult { password?: string }
+const Ctx = createContext<(o: ConfirmOptions) => Promise<ConfirmResult | null>>(async () => null);
 
 /** Promise-based confirmation dialog, used for every destructive action. */
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   const [opts, setOpts] = useState<ConfirmOptions | null>(null);
-  const resolver = useRef<(v: boolean) => void>(null);
+  const [password, setPassword] = useState("");
+  const resolver = useRef<(v: ConfirmResult | null) => void>(null);
   const returnFocus = useReturnFocus();
 
   const confirm = useCallback((o: ConfirmOptions) => {
+    setPassword("");
     setOpts(o);
-    return new Promise<boolean>((resolve) => { resolver.current = resolve; });
+    return new Promise<ConfirmResult | null>((resolve) => { resolver.current = resolve; });
   }, []);
 
   const close = (v: boolean) => {
-    resolver.current?.(v);
+    resolver.current?.(v ? { password: opts?.requirePassword ? password : undefined } : null);
     resolver.current = null;
     setOpts(null);
   };
@@ -56,11 +61,24 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                     )}
                   </div>
                 </div>
+                {opts.requirePassword && (
+                  <label className="field confirm-password">
+                    <span className="field-label">{opts.passwordLabel ?? "Password"}</span>
+                    <input
+                      className="input"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="off"
+                      placeholder="Enter password to continue"
+                    />
+                  </label>
+                )}
                 <div className="dialog-actions">
                   <button className="btn btn-ghost" onClick={() => close(false)} autoFocus>
                     {opts.cancelLabel ?? "Cancel"}
                   </button>
-                  <button className={`btn ${opts.tone === "danger" ? "btn-danger" : "btn-primary"}`} onClick={() => close(true)}>
+                  <button className={`btn ${opts.tone === "danger" ? "btn-danger" : "btn-primary"}`} onClick={() => close(true)} disabled={opts.requirePassword && !password}>
                     {opts.confirmLabel ?? "Confirm"}
                   </button>
                 </div>

@@ -47,7 +47,13 @@ ok(await page.getByRole("heading", { name: "Choose your workspace" }).isVisible(
 ok((await page.locator(".app-side").count()) === 1 && !(await page.locator(".app-side").isVisible()), "launcher does not show the media sidebar");
 ok(await page.getByRole("button", { name: /Enter Nexosphere/ }).isVisible() && await page.getByRole("button", { name: /Enter Nexuflow/ }).isVisible(), "launcher offers both interfaces");
 await page.getByRole("button", { name: /Enter Nexosphere/ }).click();
-await page.waitForURL(/view=all/);
+await page.waitForURL(/view=dashboard/);
+
+console.log("Friendly dashboard");
+ok(await page.getByRole("heading", { name: "What would you like to work on?" }).isVisible(), "workspace opens on the friendly dashboard");
+ok((await cards().count()) === 0, "dashboard does not stack media cards");
+for (const label of ["Images", "Videos", "Folders", "All media"]) ok(await page.locator(".dash-card", { hasText: label }).isVisible(), `dashboard: ${label}`);
+await side().getByRole("navigation").getByRole("link", { name: "All media" }).click();
 
 console.log("Empty workspace");
 await page.locator(".zone-hero").waitFor();
@@ -55,7 +61,7 @@ ok(await page.getByRole("heading", { name: "Drop it here. Keep it together." }).
 ok((await page.locator(".toolbar").count()) === 0, "no gallery toolbar while empty");
 const nav = side().getByRole("navigation", { name: "Workspace" });
 for (const label of ["Images", "Videos", "All media", "All folders", "Uploads", "Trash"]) ok(await nav.getByRole("link", { name: label }).isVisible(), `sidebar: ${label}`);
-const libraryLabels = await nav.locator("ul").first().getByRole("link").allTextContents();
+const libraryLabels = await nav.locator("ul").nth(1).getByRole("link").allTextContents();
 ok(libraryLabels.findIndex((v) => v.includes("All media")) > libraryLabels.findIndex((v) => v.includes("Videos")), "sidebar: All media is placed below Videos");
 ok(await side().getByRole("button", { name: "Upload files" }).isVisible() && await side().getByRole("button", { name: "Lock workspace" }).isVisible(), "sidebar: Upload files and Lock workspace");
 ok(await side().getByRole("tab", { name: "Nexosphere" }).isVisible() && await side().getByRole("tab", { name: "Nexuflow" }).isVisible(), "sidebar: both interface tabs are available");
@@ -70,6 +76,7 @@ ok(!(await page.locator(".uhead-upload").isVisible()), "no duplicate Upload butt
 const text = await page.locator("body").innerText();
 ok(!/SphereHub|Collections|Favorites|Presentation|Sign out|Good (morning|afternoon)/i.test(text), "no SphereHub/account UI");
 await shot("empty-1440");
+await side().getByRole("navigation").getByRole("link", { name: "All media" }).click();
 
 console.log("Upload");
 let chooser = page.waitForEvent("filechooser");
@@ -80,8 +87,9 @@ ok(await waitFor(async () => (await cards().count()) === 4), "gallery updates wi
 ok(await waitFor(async () => (await page.locator(".uq-row.uq-danger").count()) === 1), "unsupported file stays visible in the tray");
 await page.getByRole("button", { name: /Remove not-really-an-image/ }).click();
 await side().getByRole("tab", { name: "Nexuflow" }).click();
-ok(await waitFor(async () => (await apiJson("/api/summary?workspace=nexuflow")).all === 0 && (await cards().count()) === 0), "Nexuflow stays empty when files were uploaded to Nexosphere");
+ok(await waitFor(async () => (await apiJson("/api/summary?workspace=nexuflow")).all === 0 && await page.getByRole("heading", { name: "What would you like to work on?" }).isVisible()), "Nexuflow stays empty when files were uploaded to Nexosphere");
 await side().getByRole("tab", { name: "Nexosphere" }).click();
+await side().getByRole("navigation").getByRole("link", { name: "All media" }).click();
 ok(await waitFor(async () => (await cards().count()) === 4), "Nexosphere media returns after switching back");
 
 console.log("Progress, cancel, retry");
@@ -165,11 +173,15 @@ console.log("Trash, Undo, Restore, permanent delete");
 await page.getByRole("button", { name: "Select", exact: true }).click();
 await page.locator(".card", { hasText: "large-noise" }).locator(".check").check();
 await page.locator(".bulkbar").getByRole("button", { name: /Move to Trash/ }).click();
+await page.getByLabel("Deletion password").fill("sliferslacker");
+await page.getByRole("button", { name: "Move to Trash" }).click();
 ok(await waitFor(async () => (await summary()).trash === 1 && (await cards().count()) === 5), "bulk Move to Trash removes it from the view");
 await page.getByRole("button", { name: "Undo" }).click();
 ok(await waitFor(async () => (await summary()).trash === 0 && (await cards().count()) === 6), "Undo restores it");
 await page.locator(".card", { hasText: "large-noise" }).getByRole("button", { name: /Actions for/ }).click();
 await page.getByRole("menuitem", { name: "Move to Trash" }).click();
+await page.getByLabel("Deletion password").fill("sliferslacker");
+await page.getByRole("button", { name: "Move to Trash" }).click();
 ok(await waitFor(async () => (await summary()).trash === 1), "single Move to Trash");
 await side().getByRole("navigation").getByRole("link", { name: /Trash/ }).click();
 ok(await waitFor(async () => (await cards().count()) === 1), "Trash view shows the trashed file");
@@ -180,12 +192,22 @@ ok(await waitFor(async () => { const s = await summary(); return s.trash === 0 &
 await home().click();
 await page.locator(".card", { hasText: "large-noise" }).getByRole("button", { name: /Actions for/ }).click();
 await page.getByRole("menuitem", { name: "Move to Trash" }).click();
+await page.getByLabel("Deletion password").fill("sliferslacker");
+await page.getByRole("button", { name: "Move to Trash" }).click();
 await waitFor(async () => (await summary()).trash === 1);
 await side().getByRole("navigation").getByRole("link", { name: /Trash/ }).click();
 await waitFor(async () => (await cards().count()) === 1);
 await page.locator(".card").getByRole("button", { name: /Actions for/ }).click();
 await page.getByRole("menuitem", { name: /Delete permanently/ }).click();
 ok(/can.t be undone/.test(await page.getByRole("alertdialog").innerText()), "permanent delete asks for confirmation");
+ok(await page.getByLabel("Deletion password").isVisible(), "permanent delete requires a password");
+await page.getByLabel("Deletion password").fill("wrong-password");
+await page.getByRole("button", { name: "Delete permanently" }).click();
+ok(await waitFor(async () => /incorrect/i.test(await page.locator(".toast").last().innerText())), "wrong deletion password is rejected");
+consoleErrors.length = 0; // The intentional 403 above is expected and already asserted.
+await page.locator(".card").getByRole("button", { name: /Actions for/ }).click();
+await page.getByRole("menuitem", { name: /Delete permanently/ }).click();
+await page.getByLabel("Deletion password").fill("sliferslacker");
 await page.getByRole("button", { name: "Delete permanently" }).click();
 ok(await waitFor(async () => { const s = await summary(); return s.trash === 0 && s.all === 5; }), "deleted permanently; nothing else affected");
 

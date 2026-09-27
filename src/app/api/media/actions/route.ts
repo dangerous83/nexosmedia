@@ -2,15 +2,17 @@ import { fail, handle, json, readJson, requireAccess } from "@/server/http";
 import { moveMedia, purgeMedia, restoreMedia, trashMedia } from "@/server/media";
 import { deleteMediaMetadata, persistMediaMany } from "@/server/blob-meta";
 import { workspaceFrom } from "@/server/workspace";
+import { config } from "@/server/config";
 
-type Body = { action?: string; ids?: unknown; folderId?: unknown; all?: unknown };
+type Body = { action?: string; ids?: unknown; folderId?: unknown; all?: unknown; password?: unknown };
 
 /** Bulk operations on the shared workspace: move, trash, restore, and permanent delete (Trash only). */
 export const POST = handle(async (req) => {
   await requireAccess(req);
-  const { action, ids, folderId, all } = await readJson<Body>(req);
+  const { action, ids, folderId, all, password } = await readJson<Body>(req);
   const workspace = workspaceFrom(req);
   const list = Array.isArray(ids) ? ids.filter((i): i is string => typeof i === "string") : [];
+  if ((action === "trash" || action === "purge") && password !== config.deletePassphrase) return fail(403, "The deletion password is incorrect.");
   if (action === "purge" && all === true) {
     const purged = await purgeMedia(workspace, "all");
     await deleteMediaMetadata(purged);

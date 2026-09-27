@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import * as Menu from "@radix-ui/react-dropdown-menu";
 import {
-  AlertCircle, CheckSquare, ChevronRight, Download, Folder as FolderIcon, FolderInput, FolderPlus, Grid2x2, Grid3x3, LayoutGrid, List, Square,
+  AlertCircle, CheckSquare, ChevronRight, Download, Film, Folder as FolderIcon, FolderInput, FolderPlus, Grid2x2, Grid3x3, Images, LayoutGrid, List, Square,
   Menu as MenuIcon, Monitor, MoreHorizontal, Pencil, RotateCcw, RotateCw, Search, SearchX, Smartphone, Trash2, Upload, X,
 } from "lucide-react";
 import { BrandSymbol, NexuflowLogo } from "@/components/Brand";
@@ -43,6 +43,7 @@ const DENSITIES: { key: Density; label: string; icon: typeof Square }[] = [
 function titleFor(loc: Loc, folder: Folder | null | undefined) {
   switch (loc.kind) {
     case "launcher": return "Choose an interface";
+    case "dashboard": return "Home";
     case "all": return "All media";
     case "images": return "Images";
     case "videos": return "Videos";
@@ -88,7 +89,9 @@ export function Workspace({ limits }: { limits: Limits }) {
   return (
     <>
       <UtilityHeader loc={loc} title={title} folder={folder} q={q} setParam={setParam} summary={summary} />
-      {loc.kind === "folders" ? (
+      {loc.kind === "dashboard" ? (
+        <Dashboard summary={summary} folders={folders} />
+      ) : loc.kind === "folders" ? (
         <FoldersView key={key} folders={folders} loaded={!!fdata} q={q} />
       ) : loc.kind === "uploads" ? (
         <UploadsView key={key} limits={limits} />
@@ -105,6 +108,52 @@ export function Workspace({ limits }: { limits: Limits }) {
         <MediaView key={key} loc={loc} title={title} folder={folder} folders={folders} q={q} sort={sort} orientation={orientation} setParam={setParam} summary={summary} limits={limits} />
       )}
     </>
+  );
+}
+
+// ——— Friendly brand dashboard ———
+
+function Dashboard({ summary, folders }: { summary?: Summary; folders: Folder[] }) {
+  const [prefs] = usePrefs();
+  const { openPicker } = useUploads();
+  const brandName = prefs.brand === "nexuflow" ? "Nexuflow" : "Nexosphere";
+  const cards = [
+    { href: hrefFor({ kind: "images" }), label: "Images", help: "Browse photos and graphics", count: summary?.images, icon: Images },
+    { href: hrefFor({ kind: "videos" }), label: "Videos", help: "Browse video files", count: summary?.videos, icon: Film },
+    { href: hrefFor({ kind: "folders" }), label: "Folders", help: "Keep projects organized", count: folders.length, icon: FolderIcon },
+    { href: hrefFor({ kind: "all" }), label: "All media", help: "See everything together", count: summary?.all, icon: LayoutGrid },
+  ];
+  return (
+    <main id="main" className="dashboard ws-main ws-pad" tabIndex={-1}>
+      <section className={`dash-welcome dash-welcome-${prefs.brand}`}>
+        <div className="dash-welcome-copy">
+          <p className="dash-eyebrow">{brandName} Media Space</p>
+          <h1>What would you like to work on?</h1>
+          <p>Choose a library below or upload new files. Your {brandName} media stays separate from the other workspace.</p>
+          <button className="btn btn-primary dash-upload" onClick={openPicker}><Upload aria-hidden /> Upload files</button>
+        </div>
+        <div className="dash-brand" aria-hidden>
+          {prefs.brand === "nexuflow" ? <NexuflowLogo height={58} /> : <BrandSymbol size={92} priority />}
+        </div>
+      </section>
+
+      <section className="dash-section" aria-labelledby="dash-library">
+        <div className="dash-section-head">
+          <div><h2 id="dash-library">Your library</h2><p>Open only the media you need.</p></div>
+          <span className="dash-total tabular">{summary ? plural(summary.all, "file") : "Loading…"}</span>
+        </div>
+        <div className="dash-grid">
+          {cards.map(({ href, label, help, count, icon: Icon }) => (
+            <Link key={label} href={href} className="dash-card">
+              <span className="dash-card-icon"><Icon aria-hidden /></span>
+              <span className="dash-card-copy"><strong>{label}</strong><small>{help}</small></span>
+              <span className="dash-card-count tabular">{count ?? "—"}</span>
+              <ChevronRight aria-hidden className="dash-card-arrow" />
+            </Link>
+          ))}
+        </div>
+      </section>
+    </main>
   );
 }
 
@@ -152,19 +201,19 @@ function UtilityHeader({ loc, title, folder, q, setParam, summary }: {
     }
   };
 
-  const searchable = loc.kind !== "uploads";
+  const searchable = loc.kind !== "uploads" && loc.kind !== "dashboard";
   const scopeLabel = loc.kind === "folders" ? "folders" : loc.kind === "all" ? "all media" : loc.kind === "folder" ? "this folder" : title.toLowerCase();
 
   return (
     <header className="uhead">
       <div className="uhead-row">
         <button className="icon-btn uhead-menu" onClick={openDrawer} aria-label="Open navigation"><MenuIcon /></button>
-        <Link href="/" className={`uhead-logo uhead-logo-${prefs.brand}`} aria-label={`${prefs.brand === "nexuflow" ? "NEXUFLOW" : "NEXOSPHERE"} Media Space — All media`}>
+        <Link href="/?view=dashboard" className={`uhead-logo uhead-logo-${prefs.brand}`} aria-label={`${prefs.brand === "nexuflow" ? "NEXUFLOW" : "NEXOSPHERE"} Media Space home`}>
           {prefs.brand === "nexuflow" ? <NexuflowLogo height={28} /> : <BrandSymbol size={28} />}
         </Link>
         <nav className="crumbs" aria-label="Breadcrumb">
           <ol>
-            <li className="crumb-root"><Link href="/">Media Space</Link></li>
+            <li className="crumb-root"><Link href="/?view=dashboard">Media Space</Link></li>
             {loc.kind === "folder" && <li><ChevronRight aria-hidden /><Link href="/?view=folders">Folders</Link></li>}
             <li><ChevronRight aria-hidden /><span aria-current="page" className="crumb-current">{title}</span></li>
           </ol>

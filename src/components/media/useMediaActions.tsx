@@ -34,8 +34,18 @@ export function useMediaActions(onRemoved?: (ids: string[]) => void) {
   }, [toast, onRemoved]);
 
   const trash = useCallback(async (ids: string[]) => {
+    const count = ids.length;
+    const confirmation = await confirm({
+      tone: "danger",
+      title: count === 1 ? "Move this file to Trash?" : `Move ${count} files to Trash?`,
+      description: "The files can still be restored from Trash. Enter the deletion password to continue.",
+      confirmLabel: "Move to Trash",
+      requirePassword: true,
+      passwordLabel: "Deletion password",
+    });
+    if (!confirmation) return false;
     try {
-      const r = await api<{ ids: string[] }>("/api/media/actions", { method: "POST", json: { action: "trash", ids } });
+      const r = await api<{ ids: string[] }>("/api/media/actions", { method: "POST", json: { action: "trash", ids, password: confirmation.password } });
       onRemoved?.(r.ids);
       invalidateMedia();
       toast({
@@ -49,11 +59,11 @@ export function useMediaActions(onRemoved?: (ids: string[]) => void) {
       toast({ tone: "error", title: "Couldn't move to Trash", description: (e as Error).message });
       return false;
     }
-  }, [toast, onRemoved, restore]);
+  }, [confirm, toast, onRemoved, restore]);
 
   const purge = useCallback(async (ids: string[] | "all", names?: string) => {
     const count = ids === "all" ? null : ids.length;
-    const ok = await confirm({
+    const confirmation = await confirm({
       tone: "danger",
       title: ids === "all" ? "Empty Trash?" : count === 1 ? "Delete this file permanently?" : `Delete ${count} files permanently?`,
       description: (
@@ -63,10 +73,12 @@ export function useMediaActions(onRemoved?: (ids: string[]) => void) {
         </>
       ),
       confirmLabel: ids === "all" ? "Empty Trash" : "Delete permanently",
+      requirePassword: true,
+      passwordLabel: "Deletion password",
     });
-    if (!ok) return false;
+    if (!confirmation) return false;
     try {
-      const r = await api<{ ids: string[] }>("/api/media/actions", { method: "POST", json: ids === "all" ? { action: "purge", all: true } : { action: "purge", ids } });
+      const r = await api<{ ids: string[] }>("/api/media/actions", { method: "POST", json: ids === "all" ? { action: "purge", all: true, password: confirmation.password } : { action: "purge", ids, password: confirmation.password } });
       onRemoved?.(r.ids);
       invalidateMedia();
       toast({ title: r.ids.length === 1 ? "Deleted permanently" : `${r.ids.length} files deleted permanently` });
