@@ -40,6 +40,28 @@ const DENSITIES: { key: Density; label: string; icon: typeof Square }[] = [
   { key: "compact", label: "Compact", icon: Grid3x3 }, { key: "comfortable", label: "Comfortable", icon: Grid2x2 }, { key: "large", label: "Large", icon: Square },
 ];
 
+const SEEN_MEDIA_KEY = "nexo.seen-media.v1";
+type SeenMediaState = { baseline: number; ids: string[] };
+
+function readSeenMedia(workspace: string): SeenMediaState {
+  const baseline = Date.now();
+  try {
+    const raw = localStorage.getItem(`${SEEN_MEDIA_KEY}.${workspace}`);
+    if (!raw) {
+      const initial = { baseline, ids: [] };
+      localStorage.setItem(`${SEEN_MEDIA_KEY}.${workspace}`, JSON.stringify(initial));
+      return initial;
+    }
+    const saved = JSON.parse(raw) as Partial<SeenMediaState>;
+    return {
+      baseline: typeof saved.baseline === "number" ? saved.baseline : baseline,
+      ids: Array.isArray(saved.ids) ? saved.ids.filter((id): id is string => typeof id === "string") : [],
+    };
+  } catch {
+    return { baseline, ids: [] };
+  }
+}
+
 function titleFor(loc: Loc, folder: Folder | null | undefined) {
   switch (loc.kind) {
     case "launcher": return "Choose an interface";
@@ -324,12 +346,38 @@ function MediaView({ loc, title, folder, folders, q, sort, orientation, setParam
   // Preview & details
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [detailsId, setDetailsId] = useState<string | null>(null);
+  const [seenMedia, setSeenMedia] = useState<{ workspace: string; state: SeenMediaState } | null>(null);
   const details = detailsId ? list.items.find((m) => m.id === detailsId) ?? null : null;
   useEffect(() => { if (detailsId && !list.loading && !details) setDetailsId(null); }, [detailsId, details, list.loading]);
 
+  useEffect(() => {
+    setSeenMedia({ workspace: prefs.brand, state: readSeenMedia(prefs.brand) });
+  }, [prefs.brand]);
+
+  const markSeen = useCallback((id: string) => {
+    setSeenMedia((current) => {
+      const state = current?.workspace === prefs.brand ? current.state : readSeenMedia(prefs.brand);
+      if (state.ids.includes(id)) return current ?? { workspace: prefs.brand, state };
+      const next = { baseline: state.baseline, ids: [...state.ids, id].slice(-2000) };
+      try { localStorage.setItem(`${SEEN_MEDIA_KEY}.${prefs.brand}`, JSON.stringify(next)); } catch { /* Browsing still works when storage is unavailable. */ }
+      return { workspace: prefs.brand, state: next };
+    });
+  }, [prefs.brand]);
+
+  const isNew = useCallback((media: Media) => {
+    if (inTrash || !seenMedia || seenMedia.workspace !== prefs.brand) return false;
+    return media.createdAt > seenMedia.state.baseline && !seenMedia.state.ids.includes(media.id);
+  }, [inTrash, prefs.brand, seenMedia]);
+
+  useEffect(() => {
+    if (viewerIndex === null) return;
+    const media = list.items[viewerIndex];
+    if (media) markSeen(media.id);
+  }, [viewerIndex, list.items, markSeen]);
+
   const actions: ItemActions = useMemo(() => ({
     open: (m) => setViewerIndex(list.items.findIndex((x) => x.id === m.id)),
-    details: (m) => setDetailsId(m.id),
+    details: (m) => { markSeen(m.id); setDetailsId(m.id); },
     toggle,
     move: (m) => dialogs.moveTo([m.id], { currentFolderId: m.folderId }),
     rename: (m) => dialogs.renameFile(m, list.patchLocal),
@@ -337,7 +385,7 @@ function MediaView({ loc, title, folder, folders, q, sort, orientation, setParam
     trash: (m) => { trash([m.id]); },
     restore: (m) => { restore([m.id]); },
     purge: (m) => { purge([m.id], m.name); },
-  }), [list.items, list.patchLocal, toggle, dialogs, download, trash, restore, purge]);
+  }), [list.items, list.patchLocal, toggle, dialogs, download, trash, restore, purge, markSeen]);
 
   // Progressive loading
   const sentinel = useRef<HTMLDivElement>(null);
@@ -443,14 +491,14 @@ function MediaView({ loc, title, folder, folders, q, sort, orientation, setParam
             ) : prefs.view === "grid" ? (
               <ul className={`gallery dens-${prefs.density}`} aria-label={`${title} files`}>
                 {list.items.map((m, i) => (
-                  <li key={m.id}><MediaCard media={m} actions={actions} inTrash={inTrash} selected={selected.has(m.id)} selecting={selecting} previewPending={previewPending.has(m.id)} eager={i < 8} /></li>
+                  <li key={m.id}><MediaCard media={m} actions={actions} inTrash={inTrash} isNew={isNew(m)} selected={selected.has(m.id)} selecting={selecting} previewPending={previewPending.has(m.id)} eager={i < 8} /></li>
                 ))}
               </ul>
             ) : (
               <ul className="rows" aria-label={`${title} files`}>
                 <li className="rows-head" aria-hidden><span /><span>Name</span><span className="row-type">Type</span><span className="row-size">Size</span><span className="row-date">{inTrash ? "Trashed" : "Uploaded"}</span><span /></li>
                 {list.items.map((m) => (
-                  <MediaRow key={m.id} media={m} actions={actions} inTrash={inTrash} selected={selected.has(m.id)} selecting={selecting} previewPending={previewPending.has(m.id)} />
+                  <MediaRow key={m.id} media={m} actions={actions} inTrash={inTrash} isNew={isNew(m)} selected={selected.has(m.id)} selecting={selecting} previewPending={previewPending.has(m.id)} />
                 ))}
               </ul>
             )}

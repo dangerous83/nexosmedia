@@ -23,6 +23,7 @@ interface ItemProps {
   media: Media;
   actions: ItemActions;
   inTrash: boolean;
+  isNew: boolean;
   selected: boolean;
   selecting: boolean;
   previewPending: boolean;
@@ -68,11 +69,11 @@ function Check({ media, selected, actions }: { media: Media; selected: boolean; 
   );
 }
 
-export const MediaCard = memo(function MediaCard({ media, actions, inTrash, selected, selecting, previewPending, eager }: ItemProps) {
+export const MediaCard = memo(function MediaCard({ media, actions, inTrash, isNew, selected, selecting, previewPending, eager }: ItemProps) {
   const isVideo = media.kind === "video";
   const duration = formatDuration(media.duration);
   return (
-    <article className="card" data-selected={selected || undefined} data-selecting={selecting || undefined}>
+    <article className="card" data-new={isNew || undefined} data-selected={selected || undefined} data-selecting={selecting || undefined}>
       <button
         type="button"
         className="card-open"
@@ -89,6 +90,7 @@ export const MediaCard = memo(function MediaCard({ media, actions, inTrash, sele
           {isVideo && (
             <span className="card-badge" aria-hidden><Play />{duration && <span className="tabular">{duration}</span>}</span>
           )}
+          {isNew && <span className="card-new">New</span>}
           {!selecting && <span className="card-hint" aria-hidden><Expand /> Preview</span>}
         </span>
       </button>
@@ -100,6 +102,7 @@ export const MediaCard = memo(function MediaCard({ media, actions, inTrash, sele
             <span className="card-type"><span className="card-kind-word">{isVideo ? "Video" : "Image"} · </span>{mediaFormat(media)}</span>
             <span aria-hidden> · </span>{formatBytes(media.size)}
           </p>
+          <p className="card-uploaded tabular">Uploaded {formatDate(media.createdAt)}</p>
         </div>
         <ItemMenu media={media} actions={actions} inTrash={inTrash} />
       </div>
@@ -107,10 +110,10 @@ export const MediaCard = memo(function MediaCard({ media, actions, inTrash, sele
   );
 });
 
-export const MediaRow = memo(function MediaRow({ media, actions, inTrash, selected, selecting, previewPending }: ItemProps) {
+export const MediaRow = memo(function MediaRow({ media, actions, inTrash, isNew, selected, selecting, previewPending }: ItemProps) {
   const isVideo = media.kind === "video";
   return (
-    <li className="row" data-selected={selected || undefined}>
+    <li className="row" data-new={isNew || undefined} data-selected={selected || undefined}>
       <Check media={media} selected={selected} actions={actions} />
       <button
         type="button"
@@ -126,8 +129,8 @@ export const MediaRow = memo(function MediaRow({ media, actions, inTrash, select
           {isVideo && <span className="row-play" aria-hidden><Play /></span>}
         </span>
         <span className="row-name">
-          <span className="row-title" title={media.name}>{media.name}</span>
-          <span className="row-sub tabular">{mediaFormat(media)} · {formatBytes(media.size)}</span>
+          <span className="row-title" title={media.name}>{media.name}{isNew && <span className="row-new">New</span>}</span>
+          <span className="row-sub tabular">{mediaFormat(media)} · {formatBytes(media.size)} · Uploaded {formatDate(media.createdAt)}</span>
         </span>
       </button>
       <span className="row-col row-type">{isVideo ? "Video" : "Image"} · {mediaFormat(media)}{isVideo && media.duration ? ` · ${formatDuration(media.duration)}` : ""}</span>
