@@ -8,7 +8,8 @@ import {
   AlertCircle, CheckSquare, ChevronRight, Download, Film, Folder as FolderIcon, FolderInput, FolderPlus, Grid2x2, Grid3x3, Images, LayoutGrid, List, Square,
   Menu as MenuIcon, Monitor, MoreHorizontal, Pencil, RotateCcw, RotateCw, Search, SearchX, Smartphone, Trash2, Upload, X,
 } from "lucide-react";
-import { BrandSymbol, NexuflowLogo } from "@/components/Brand";
+import { BrandSymbol, NexoTvSymbol, NexuflowLogo } from "@/components/Brand";
+import { WORKSPACE_NAMES } from "@/lib/types";
 import { InterfaceLauncher } from "@/components/workspace/InterfaceLauncher";
 import { useOpenDrawer } from "@/components/shell/AppShell";
 import { useUploads, ACTIVE_STATUSES } from "@/components/providers/UploadProvider";
@@ -138,7 +139,7 @@ export function Workspace({ limits }: { limits: Limits }) {
 function Dashboard({ summary, folders }: { summary?: Summary; folders: Folder[] }) {
   const [prefs] = usePrefs();
   const { openPicker } = useUploads();
-  const brandName = prefs.brand === "nexuflow" ? "Nexuflow" : "Nexosphere";
+  const brandName = WORKSPACE_NAMES[prefs.brand];
   const cards = [
     { href: hrefFor({ kind: "images" }), label: "Images", help: "Browse photos and graphics", count: summary?.images, icon: Images },
     { href: hrefFor({ kind: "videos" }), label: "Videos", help: "Browse video files", count: summary?.videos, icon: Film },
@@ -151,11 +152,11 @@ function Dashboard({ summary, folders }: { summary?: Summary; folders: Folder[] 
         <div className="dash-welcome-copy">
           <p className="dash-eyebrow">{brandName} Media Space</p>
           <h1>What would you like to work on?</h1>
-          <p>Choose a library below or upload new files. Your {brandName} media stays separate from the other workspace.</p>
+          <p>Choose a library below or upload new files. Your {brandName} media stays separate from the other workspaces.</p>
           <button className="btn btn-primary dash-upload" onClick={openPicker}><Upload aria-hidden /> Upload files</button>
         </div>
         <div className="dash-brand" aria-hidden>
-          {prefs.brand === "nexuflow" ? <NexuflowLogo height={58} /> : <BrandSymbol size={92} priority />}
+          {prefs.brand === "nexotv" ? <NexoTvSymbol size={116} /> : prefs.brand === "nexuflow" ? <NexuflowLogo height={58} /> : <BrandSymbol size={92} priority />}
         </div>
       </section>
 
@@ -230,8 +231,8 @@ function UtilityHeader({ loc, title, folder, q, setParam, summary }: {
     <header className="uhead">
       <div className="uhead-row">
         <button className="icon-btn uhead-menu" onClick={openDrawer} aria-label="Open navigation"><MenuIcon /></button>
-        <Link href="/?view=dashboard" className={`uhead-logo uhead-logo-${prefs.brand}`} aria-label={`${prefs.brand === "nexuflow" ? "NEXUFLOW" : "NEXOSPHERE"} Media Space home`}>
-          {prefs.brand === "nexuflow" ? <NexuflowLogo height={28} /> : <BrandSymbol size={28} />}
+        <Link href="/?view=dashboard" className={`uhead-logo uhead-logo-${prefs.brand}`} aria-label={`${WORKSPACE_NAMES[prefs.brand]} Media Space home`}>
+          {prefs.brand === "nexotv" ? <NexoTvSymbol size={28} /> : prefs.brand === "nexuflow" ? <NexuflowLogo height={28} /> : <BrandSymbol size={28} />}
         </Link>
         <nav className="crumbs" aria-label="Breadcrumb">
           <ol>

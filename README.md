@@ -2,7 +2,7 @@
 
 A private, passphrase-protected space to upload images and videos, organize them in folders, and browse, preview and download them.
 
-The flow is: **unlock the workspace → upload images or videos → browse and preview them.**
+The flow is: **unlock → choose Nexosphere, Nexuflow or Nexo TV → upload images or videos → browse and preview them.** Each brand has its own dashboard, folders, media and Trash; the selected brand is remembered in your browser. Nexo TV uses the uploaded official logo and a gold theme.
 
 This is a single shared workspace, not a multi-user app. Anyone who knows the passphrase sees the same media and can upload, organize, download and delete files. Folder changes, renames and Trash actions apply to everyone. There are no user accounts.
 

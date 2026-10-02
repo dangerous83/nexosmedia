@@ -1,7 +1,15 @@
 // Shapes shared by the API and the client.
 
 export type MediaKind = "image" | "video";
-export type WorkspaceBrand = "nexosphere" | "nexuflow";
+export type WorkspaceBrand = "nexosphere" | "nexuflow" | "nexotv";
+
+export const WORKSPACE_NAMES: Record<WorkspaceBrand, string> = {
+  nexosphere: "Nexosphere", nexuflow: "Nexuflow", nexotv: "Nexo TV",
+};
+
+export function workspaceBrand(value: unknown): WorkspaceBrand {
+  return value === "nexuflow" || value === "nexotv" ? value : "nexosphere";
+}
 
 export interface Media {
   id: string;

@@ -129,6 +129,50 @@ const MIGRATIONS: string[] = [
   CREATE INDEX media_workspace_created ON media(workspace, created_at DESC);
   CREATE INDEX media_workspace_folder ON media(workspace, folder_id);
   `,
+  // v5 — extend the CHECK constraints to Nexo TV. Rebuild both related tables together
+  // so folder membership, Trash state, IDs and storage keys survive an existing v4 install.
+  `
+  CREATE TABLE folders_v5 (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    workspace TEXT NOT NULL DEFAULT 'nexosphere'
+      CHECK (workspace IN ('nexosphere','nexuflow','nexotv'))
+  );
+  INSERT INTO folders_v5 SELECT id, name, created_at, updated_at, workspace FROM folders;
+  CREATE TABLE media_v5 (
+    id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL CHECK (kind IN ('image','video')),
+    mime TEXT NOT NULL,
+    ext TEXT NOT NULL,
+    original_name TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    width INTEGER,
+    height INTEGER,
+    duration REAL,
+    storage_key TEXT NOT NULL,
+    thumb_key TEXT,
+    created_at INTEGER NOT NULL,
+    folder_id TEXT REFERENCES folders_v5(id) ON DELETE SET NULL,
+    trashed_at INTEGER,
+    workspace TEXT NOT NULL DEFAULT 'nexosphere'
+      CHECK (workspace IN ('nexosphere','nexuflow','nexotv'))
+  );
+  INSERT INTO media_v5 SELECT id, kind, mime, ext, original_name, size, width, height,
+    duration, storage_key, thumb_key, created_at, folder_id, trashed_at, workspace FROM media;
+  DROP TABLE media;
+  DROP TABLE folders;
+  ALTER TABLE folders_v5 RENAME TO folders;
+  ALTER TABLE media_v5 RENAME TO media;
+  CREATE UNIQUE INDEX folders_workspace_name ON folders(workspace, name COLLATE NOCASE);
+  CREATE INDEX media_created ON media(created_at DESC);
+  CREATE INDEX media_name ON media(original_name COLLATE NOCASE);
+  CREATE INDEX media_folder ON media(folder_id);
+  CREATE INDEX media_trashed ON media(trashed_at);
+  CREATE INDEX media_workspace_created ON media(workspace, created_at DESC);
+  CREATE INDEX media_workspace_folder ON media(workspace, folder_id);
+  `,
 ];
 
 function open(): DatabaseSync {

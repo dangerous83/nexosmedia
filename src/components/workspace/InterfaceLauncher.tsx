@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { BrandSymbol, NexuflowLogo, Wordmark } from "@/components/Brand";
+import { BrandSymbol, NexoTvSymbol, NexoTvWordmark, NexuflowLogo, Wordmark } from "@/components/Brand";
 import { usePrefs, type BrandMode } from "@/lib/store";
 
 export function InterfaceLauncher() {
@@ -34,6 +34,14 @@ export function InterfaceLauncher() {
             <NexuflowLogo height={72} />
           </span>
           <span className="launch-label"><strong>Enter Nexuflow</strong><span>Blue media workspace</span></span>
+        </button>
+
+        <button className="launch-card launch-tv" onClick={() => enter("nexotv")}>
+          <span className="launch-logo launch-logo-tv">
+            <NexoTvSymbol size={116} />
+            <NexoTvWordmark height={14} />
+          </span>
+          <span className="launch-label"><strong>Enter Nexo TV</strong><span>Gold media workspace</span></span>
         </button>
       </div>
     </main>

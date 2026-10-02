@@ -125,6 +125,31 @@
   --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px #62d7ff;
 }
 
+/* Nexo TV's gold frame carries through its independent workspace. */
+:root[data-brand="nexotv"] {
+  --bg: #090704;
+  --sidebar-bg: #100c07;
+  --header-bg: rgba(9, 7, 4, .86);
+  --surface-1: #18120c;
+  --surface-2: #22190f;
+  --surface-3: #2e2214;
+  --surface-4: #3a2b19;
+  --border: rgba(255, 205, 128, .09);
+  --border-2: rgba(255, 205, 128, .16);
+  --border-3: rgba(255, 205, 128, .26);
+  --text: #fffaf1;
+  --text-2: #d2c2ab;
+  --text-3: #aa967c;
+  --accent: #ffd08b;
+  --accent-strong: #efa634;
+  --accent-bg: rgba(239, 166, 52, .17);
+  --accent-border: rgba(255, 194, 92, .5);
+  --brand-gradient: linear-gradient(135deg, #ffe3a4, #f4b94f 55%, #df8f21);
+  --brand-gradient-soft: linear-gradient(135deg, rgba(255, 227, 164, .13), rgba(239, 166, 52, .2));
+  --primary-gradient: linear-gradient(135deg, #ffe3a4, #f4b94f 55%, #df8f21);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px #ffd08b;
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root { --d-1: 0ms; --d-2: 0ms; --d-3: 0ms; }
 }

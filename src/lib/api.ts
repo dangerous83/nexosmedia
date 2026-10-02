@@ -1,5 +1,7 @@
 "use client";
 
+import { workspaceBrand } from "./types";
+
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
@@ -10,7 +12,7 @@ export const CSRF_HEADERS = { "X-Nexo-Request": "1" } as const;
 function activeWorkspace() {
   try {
     const saved = JSON.parse(localStorage.getItem("nexo.ui.v1") ?? "{}") as { brand?: unknown };
-    return saved.brand === "nexuflow" ? "nexuflow" : "nexosphere";
+    return workspaceBrand(saved.brand);
   } catch { return "nexosphere"; }
 }
 

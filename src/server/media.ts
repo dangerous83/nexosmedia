@@ -4,6 +4,7 @@ import { db, tx } from "./db";
 import { storage } from "./storage";
 import { HttpError } from "./http";
 import type { Folder, Media, MediaKind, MediaPage, SortKey, Summary, WorkspaceBrand } from "@/lib/types";
+import { workspaceBrand } from "@/lib/types";
 
 export interface MediaRow {
   id: string; kind: MediaKind; mime: string; ext: string; original_name: string; size: number;
@@ -100,7 +101,7 @@ export function insertMedia(r: Omit<MediaRow, "trashed_at">) {
 
 /** Restores durable object-store metadata into a fresh serverless SQLite cache. */
 export function upsertMedia(r: MediaRow | (Omit<MediaRow, "workspace"> & { workspace?: WorkspaceBrand })) {
-  const workspace: WorkspaceBrand = r.workspace === "nexuflow" ? "nexuflow" : "nexosphere";
+  const workspace = workspaceBrand(r.workspace);
   db().prepare(
     `INSERT INTO media (id, kind, mime, ext, original_name, size, width, height, duration, storage_key, thumb_key, created_at, folder_id, trashed_at, workspace)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)

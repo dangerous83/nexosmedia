@@ -7,13 +7,14 @@ import {
   ChevronDown, Film, Folder as FolderIcon, FolderPlus, House, Images, LayoutGrid, Lock, Orbit, PanelLeftClose, PanelLeftOpen,
   ShieldCheck, Trash2, Upload, UploadCloud,
 } from "lucide-react";
-import { BrandSymbol, NexuflowLogo, Wordmark } from "@/components/Brand";
+import { BrandSymbol, NexoTvSymbol, NexuflowLogo, Wordmark } from "@/components/Brand";
 import { useUploads } from "@/components/providers/UploadProvider";
 import { useDialogs } from "@/components/providers/DialogsProvider";
 import { usePrefs, useQuery, type BrandMode } from "@/lib/store";
 import { hrefFor, parseLoc, sameLoc, type Loc } from "@/lib/location";
 import { useLock } from "./useLock";
 import type { Folder, Summary } from "@/lib/types";
+import { WORKSPACE_NAMES } from "@/lib/types";
 
 interface Props { rail?: boolean; onNavigate?: () => void; onToggleRail?: () => void; canToggle?: boolean }
 
@@ -58,8 +59,9 @@ export function Sidebar({ rail = false, onNavigate, onToggleRail, canToggle }: P
   return (
     <div className={`side${rail ? " is-rail" : ""}`}>
       <div className="side-top">
-        <Link href="/?view=dashboard" className={`side-brand side-brand-${brand}`} onClick={onNavigate} aria-label={`${brand === "nexuflow" ? "NEXUFLOW" : "NEXOSPHERE"} Media Space home`}>
-          {brand === "nexuflow" ? <NexuflowLogo height={34} /> : <BrandSymbol size={30} priority />}
+        <Link href="/?view=dashboard" className={`side-brand side-brand-${brand}`} onClick={onNavigate} aria-label={`${WORKSPACE_NAMES[brand]} Media Space home`}>
+          {brand === "nexotv" ? <NexoTvSymbol size={34} /> : brand === "nexuflow" ? <NexuflowLogo height={34} /> : <BrandSymbol size={30} priority />}
+          {brand === "nexotv" && <span className="side-brand-text"><strong>NEXO TV</strong><span className="side-brand-tag">Media Space</span></span>}
           {brand === "nexosphere" && (
             <span className="side-brand-text">
               <Wordmark height={10} />
@@ -89,6 +91,18 @@ export function Sidebar({ rail = false, onNavigate, onToggleRail, canToggle }: P
           >
             <Orbit aria-hidden />
             <span className="nav-label">Nexuflow</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={brand === "nexotv"}
+            className="brand-tab brand-tab-tv"
+            onClick={() => switchBrand("nexotv")}
+            data-tip={rail ? "Nexo TV interface" : undefined}
+            aria-label="Nexo TV"
+          >
+            <NexoTvSymbol size={20} />
+            <span className="nav-label">Nexo TV</span>
           </button>
         </div>
         <button className="btn btn-primary side-upload" onClick={() => { openPicker(); onNavigate?.(); }} data-tip={rail ? "Upload files" : undefined} aria-label={rail ? "Upload files" : undefined}>

@@ -8,6 +8,15 @@ export function BrandSymbol({ size = 32, className, priority }: { size?: number;
   );
 }
 
+/** Web crops of the owner's uploaded Nexo TV logo; the artwork is not redrawn. */
+export function NexoTvSymbol({ size = 32 }: { size?: number }) {
+  return <img src="/brand/nexotv-symbol.png" alt="Nexo TV" width={size} height={size} style={{ width: size, height: size, objectFit: "contain" }} />;
+}
+
+export function NexoTvWordmark({ height = 12 }: { height?: number }) {
+  return <img src="/brand/nexotv-wordmark.png" alt="NEXO TV PRESENTS" height={height} style={{ height, width: "auto", maxWidth: "100%", objectFit: "contain" }} />;
+}
+
 /** The wordmark keeps its native 805:51 proportions. */
 export function Wordmark({ height = 12, className }: { height?: number; className?: string }) {
   return (
