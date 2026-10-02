@@ -1,6 +1,6 @@
 import { fail, handle, json, readJson, requireAccess } from "@/server/http";
 import { moveMedia, purgeMedia, restoreMedia, trashMedia } from "@/server/media";
-import { deleteMediaMetadata, persistMediaMany } from "@/server/blob-meta";
+import { deleteMediaMetadata, persistMediaMany, syncMediaMetadata } from "@/server/blob-meta";
 import { workspaceFrom } from "@/server/workspace";
 import { config } from "@/server/config";
 
@@ -9,6 +9,7 @@ type Body = { action?: string; ids?: unknown; folderId?: unknown; all?: unknown;
 /** Bulk operations on the shared workspace: move, trash, restore, and permanent delete (Trash only). */
 export const POST = handle(async (req) => {
   await requireAccess(req);
+  await syncMediaMetadata();
   const { action, ids, folderId, all, password } = await readJson<Body>(req);
   const workspace = workspaceFrom(req);
   const list = Array.isArray(ids) ? ids.filter((i): i is string => typeof i === "string") : [];

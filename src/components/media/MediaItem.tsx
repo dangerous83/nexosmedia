@@ -106,6 +106,7 @@ export const MediaCard = memo(function MediaCard({ media, actions, inTrash, isNe
         </div>
         <ItemMenu media={media} actions={actions} inTrash={inTrash} />
       </div>
+      {!inTrash && <button className="card-move" onClick={() => actions.move(media)} aria-label={`Move ${media.name} to folder`}><FolderInput aria-hidden /> Move to folder</button>}
     </article>
   );
 });

@@ -16,4 +16,5 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+      - run: node tests/folder-storage.mjs
       - run: npm run build

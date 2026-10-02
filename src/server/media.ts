@@ -111,7 +111,8 @@ export function upsertMedia(r: MediaRow | (Omit<MediaRow, "workspace"> & { works
        storage_key=excluded.storage_key, thumb_key=excluded.thumb_key, created_at=excluded.created_at,
        folder_id=excluded.folder_id, trashed_at=excluded.trashed_at, workspace=excluded.workspace`,
   ).run(r.id, r.kind, r.mime, r.ext, r.original_name, r.size, r.width, r.height, r.duration,
-    r.storage_key, r.thumb_key, r.created_at, r.folder_id, r.trashed_at, workspace);
+    r.storage_key, r.thumb_key, r.created_at,
+    r.folder_id && folderExists(workspace, r.folder_id) ? r.folder_id : null, r.trashed_at, workspace);
 }
 
 export function setThumbKey(id: string, key: string) {
@@ -185,7 +186,15 @@ export function rowsForArchive(workspace: WorkspaceBrand, list: string[]) {
 
 // ——— Folders ———
 
-interface FolderRow { id: string; name: string; created_at: number; updated_at: number; workspace: WorkspaceBrand }
+export interface FolderRow { id: string; name: string; created_at: number; updated_at: number; workspace: WorkspaceBrand }
+
+/** Restore folders before media so durable folder references satisfy SQLite's foreign key. */
+export function upsertFolder(row: FolderRow) {
+  db().prepare(`INSERT INTO folders (id, name, created_at, updated_at, workspace) VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET name=excluded.name, updated_at=excluded.updated_at
+    WHERE excluded.updated_at >= folders.updated_at`)
+    .run(row.id, row.name, row.created_at, row.updated_at, workspaceBrand(row.workspace));
+}
 
 export function getFolderRow(workspace: WorkspaceBrand, id: string): FolderRow {
   const row = db().prepare("SELECT * FROM folders WHERE id = ? AND workspace = ?").get(id, workspace) as FolderRow | undefined;

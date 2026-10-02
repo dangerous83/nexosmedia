@@ -139,6 +139,7 @@ export function Workspace({ limits }: { limits: Limits }) {
 function Dashboard({ summary, folders }: { summary?: Summary; folders: Folder[] }) {
   const [prefs] = usePrefs();
   const { openPicker } = useUploads();
+  const dialogs = useDialogs();
   const brandName = WORKSPACE_NAMES[prefs.brand];
   const cards = [
     { href: hrefFor({ kind: "images" }), label: "Images", help: "Browse photos and graphics", count: summary?.images, icon: Images },
@@ -153,7 +154,10 @@ function Dashboard({ summary, folders }: { summary?: Summary; folders: Folder[] 
           <p className="dash-eyebrow">{brandName} Media Space</p>
           <h1>What would you like to work on?</h1>
           <p>Choose a library below or upload new files. Your {brandName} media stays separate from the other workspaces.</p>
-          <button className="btn btn-primary dash-upload" onClick={openPicker}><Upload aria-hidden /> Upload files</button>
+          <div className="dash-actions">
+            <button className="btn btn-primary" onClick={openPicker}><Upload aria-hidden /> Upload files</button>
+            <button className="btn" onClick={() => dialogs.newFolder()}><FolderPlus aria-hidden /> New folder</button>
+          </div>
         </div>
         <div className="dash-brand" aria-hidden>
           {prefs.brand === "nexotv" ? <NexoTvSymbol size={116} /> : prefs.brand === "nexuflow" ? <NexuflowLogo height={58} /> : <BrandSymbol size={92} priority />}
@@ -175,6 +179,22 @@ function Dashboard({ summary, folders }: { summary?: Summary; folders: Folder[] 
             </Link>
           ))}
         </div>
+      </section>
+
+      <section className="dash-section" aria-labelledby="dash-folders">
+        <div className="dash-section-head">
+          <div><h2 id="dash-folders">Your folders</h2><p>Create folders, then move media into them.</p></div>
+          <Link className="btn btn-ghost" href={hrefFor({ kind: "folders" })}>View all folders <ChevronRight aria-hidden /></Link>
+        </div>
+        {folders.length ? (
+          <ul className="dash-folder-grid" aria-label={`${brandName} folders`}>
+            {folders.slice(0, 6).map((f) => (
+              <li key={f.id}><Link className="dash-folder" href={hrefFor({ kind: "folder", id: f.id })}>
+                <FolderIcon aria-hidden /><span><strong>{f.name}</strong><small>{plural(f.count, "file")}</small></span><ChevronRight aria-hidden />
+              </Link></li>
+            ))}
+          </ul>
+        ) : <p className="dash-folder-empty">No folders yet. Use New folder to organize a project or client.</p>}
       </section>
     </main>
   );
@@ -413,6 +433,7 @@ function MediaView({ loc, title, folder, folders, q, sort, orientation, setParam
           <p className="view-count tabular" aria-live="polite">
             {list.initialLoading ? "Loading…" : q ? `${plural(list.total, unit)} matching “${q}”` : plural(list.total, unit)}
           </p>
+          {!inTrash && <button className="btn view-new-folder" onClick={() => dialogs.newFolder()}><FolderPlus aria-hidden /> New folder</button>}
         </div>
         {inTrash && (
           <p className="view-note">Files stay in Trash until they&rsquo;re deleted permanently. Restoring returns a file to its original folder if it still exists, otherwise to All media.</p>

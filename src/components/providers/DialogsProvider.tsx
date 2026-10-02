@@ -43,7 +43,11 @@ export function DialogsProvider({ children }: { children: React.ReactNode }) {
     <DialogsCtx.Provider value={value}>
       {children}
       <FolderDialog state={folderDlg} onClose={() => setFolderDlg(null)} />
-      <MoveDialog state={moveDlg} onClose={() => setMoveDlg(null)} onNewFolder={(ids) => { setMoveDlg(null); setFolderDlg({ mode: "create", thenMove: ids }); }} />
+      <MoveDialog state={moveDlg} onClose={() => setMoveDlg(null)} onNewFolder={(ids) => {
+        const onMoved = moveDlg?.onMoved;
+        setMoveDlg(null);
+        setFolderDlg({ mode: "create", thenMove: ids, onCreated: (folder) => onMoved?.(folder.id) });
+      }} />
       <RenameDialog state={renameDlg} onClose={() => setRenameDlg(null)} />
     </DialogsCtx.Provider>
   );

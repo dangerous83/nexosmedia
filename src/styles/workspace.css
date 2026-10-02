@@ -246,6 +246,20 @@
 .dash-welcome h1 { color: var(--text); font-size: clamp(2rem, 4.3vw, 3.6rem); line-height: 1.02; letter-spacing: -.05em; }
 .dash-welcome-copy > p:last-of-type { max-width: 56ch; margin-top: 16px; color: var(--muted); font-size: 15px; line-height: 1.6; }
 .dash-upload { margin-top: 24px; }
+.dash-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.dash-folder-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.dash-folder { display: flex; align-items: center; gap: 12px; min-height: 84px; padding: 18px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-1); }
+.dash-folder:hover { border-color: var(--accent-border); background: var(--accent-bg); }
+.dash-folder > svg { flex: none; width: 22px; color: var(--accent); }
+.dash-folder > svg:last-child { width: 16px; }
+.dash-folder > span { display: grid; gap: 5px; flex: 1; min-width: 0; }
+.dash-folder strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.dash-folder small, .dash-folder-empty { color: var(--text-3); font-size: 13px; }
+.dash-folder-empty { padding: 24px; border: 1px dashed var(--border-2); border-radius: 14px; }
+.card-move { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 40px; color: var(--accent); border-top: 1px solid var(--border); font-size: 12px; font-weight: 600; }
+.card-move svg { width: 16px; height: 16px; }
+.card-move:hover { background: var(--accent-bg); }
+.view-new-folder { margin-left: auto; }
 .dash-brand { position: relative; z-index: 1; width: clamp(150px, 19vw, 230px); display: grid; place-items: center; opacity: .96; }
 .dash-brand img { max-width: 100% !important; height: auto !important; object-fit: contain; }
 .dash-section { display: grid; gap: 16px; }
@@ -265,6 +279,8 @@
 .nav-dashboard { margin-bottom: 8px; }
 .confirm-password { display: grid; gap: 7px; margin-top: 18px; }
 @media (max-width: 700px) {
+  .dash-folder-grid { grid-template-columns: 1fr; }
+  .dash-section-head { align-items: start; flex-wrap: wrap; gap: 10px; }
   .dashboard { gap: 24px; }
   .dash-welcome { min-height: 0; grid-template-columns: 1fr; padding: 28px 22px; }
   .dash-brand { display: none; }
